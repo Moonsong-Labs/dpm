@@ -5,6 +5,8 @@ import (
 	"net/url"
 	"path/filepath"
 	"strings"
+
+	"daml.com/x/assistant/pkg/utils"
 )
 
 type gitDependencyModes struct {
@@ -82,7 +84,7 @@ func validateGitRepoDarPath(path string) error {
 	if err := validateRepoRelativeDarPath(path); err != nil {
 		return err
 	}
-	if !isDarPath(path) {
+	if !utils.IsDarPath(path) {
 		return fmt.Errorf("repo-relative path %q must end with .dar", path)
 	}
 	return nil
@@ -97,7 +99,7 @@ func validateGitInlineDependency(remainder string) error {
 }
 
 func validateGitReleaseAsset(asset string) error {
-	if !isDarPath(asset) {
+	if !utils.IsDarPath(asset) {
 		return fmt.Errorf("git asset %q must end with .dar", asset)
 	}
 	return validateReleaseAssetName(asset)
@@ -111,10 +113,6 @@ func validateReleaseAssetName(asset string) error {
 		return fmt.Errorf("release asset %q is invalid", asset)
 	}
 	return nil
-}
-
-func isDarPath(path string) bool {
-	return strings.HasSuffix(strings.ToLower(path), ".dar")
 }
 
 // JoinRepoRelativeDarPath joins repoRoot and relPath after validateRepoRelativeDarPath.
