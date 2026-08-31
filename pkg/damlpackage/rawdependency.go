@@ -4,18 +4,16 @@ import (
 	"fmt"
 	"strings"
 
-	"daml.com/x/assistant/pkg/gitparse"
 	"github.com/goccy/go-yaml"
 )
 
-var RawDependenciesSchemaErr = fmt.Errorf("dar dependencies fields must be of type string, structured git object, or '{ value: <string>, main-package-id: <string> }' object")
+var RawDependenciesSchemaErr = fmt.Errorf("dar dependencies fields must be of type string or '{ value: <string>, main-package-id: <string> }' object")
 
 // RawDependency is the 'string | {...}' sum-type for
 // dependencies / data-dependencies YAML fields
 type RawDependency struct {
 	ValueOnly     *string
 	WithPackageId *withPackageId
-	GitStructured *gitparse.GitStructuredFields
 }
 
 type withPackageId struct {
@@ -23,14 +21,8 @@ type withPackageId struct {
 	MainPackageId string `yaml:"main-package-id"`
 }
 
-type gitStructuredEntry struct {
-	Git gitparse.GitStructuredFields `yaml:"git"`
-}
-
 func (r *RawDependency) Value() (string, error) {
 	switch {
-	case r.GitStructured != nil:
-		return gitparse.FormatGitStructuredLine(r.GitStructured)
 	case r.WithPackageId != nil:
 		return r.WithPackageId.Value, nil
 	case r.ValueOnly != nil:
@@ -54,12 +46,6 @@ func (r *RawDependency) UnmarshalYAML(b []byte) error {
 		return nil
 	}
 
-	var gitEntry gitStructuredEntry
-	if err := yaml.Unmarshal(b, &gitEntry); err == nil && gitEntry.Git.URL != "" {
-		r.GitStructured = &gitEntry.Git
-		return nil
-	}
-
 	var obj withPackageId
 	if err := yaml.Unmarshal(b, &obj); err == nil {
 		if strings.TrimSpace(obj.Value) == "" {
@@ -74,8 +60,6 @@ func (r *RawDependency) UnmarshalYAML(b []byte) error {
 
 func (r *RawDependency) MarshalYAML() (any, error) {
 	switch {
-	case r.GitStructured != nil:
-		return gitStructuredEntry{Git: *r.GitStructured}, nil
 	case r.WithPackageId != nil:
 		return *r.WithPackageId, nil
 	case r.ValueOnly != nil:

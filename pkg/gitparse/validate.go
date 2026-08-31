@@ -14,18 +14,6 @@ type gitDependencyModes struct {
 	asset   string
 }
 
-func gitDependencyModesFromStructured(fields *GitStructuredFields) gitDependencyModes {
-	if fields == nil {
-		return gitDependencyModes{}
-	}
-	return gitDependencyModes{
-		release: strings.TrimSpace(fields.Release),
-		ref:     strings.TrimSpace(fields.Ref),
-		path:    strings.TrimSpace(fields.Path),
-		asset:   strings.TrimSpace(fields.Asset),
-	}
-}
-
 func gitDependencyModesFromInline(remainder string) (gitDependencyModes, error) {
 	modes := gitDependencyModes{}
 
@@ -98,13 +86,6 @@ func validateGitRepoDarPath(path string) error {
 		return fmt.Errorf("repo-relative path %q must end with .dar", path)
 	}
 	return nil
-}
-
-func validateGitStructuredFields(fields *GitStructuredFields) error {
-	if fields == nil {
-		return fmt.Errorf("missing git fields")
-	}
-	return validateGitDependencyModes(gitDependencyModesFromStructured(fields))
 }
 
 func validateGitInlineDependency(remainder string) error {

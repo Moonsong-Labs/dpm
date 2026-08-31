@@ -48,7 +48,7 @@ dependencies:
 	assert.Equal(t, "pkg/foo.dar", dep.Git.DarPath)
 }
 
-func TestParseGitStructuredDependency(t *testing.T) {
+func TestParseGitStructuredDependency_rejected(t *testing.T) {
 	contents := []byte(`sdk-version: 3.4.5
 dependencies:
   - git:
@@ -56,66 +56,9 @@ dependencies:
       ref: main
       path: pkg/foo.dar
 `)
-	p, err := ReadFromContents(contents, "")
-	require.NoError(t, err)
-	require.Len(t, p.ParsedDarDependencies.Dependencies, 1)
-	dep := loFirstDependency(p)
-	assert.Equal(t, "main", dep.Git.Ref)
-	assert.Equal(t, "pkg/foo.dar", dep.Git.DarPath)
-}
-
-func TestParseGitStructuredDependency_conflictingFields(t *testing.T) {
-	t.Parallel()
-
-	cases := []struct {
-		name string
-		yaml string
-		err  string
-	}{
-		{
-			name: "release with ref and path",
-			yaml: `sdk-version: 3.4.5
-dependencies:
-  - git:
-      url: https://github.com/org/repo.git
-      ref: main
-      path: dist/foo.dar
-      release: v1.0.0
-      asset: bar.dar
-`,
-			err: "release cannot be combined with ref or path",
-		},
-		{
-			name: "asset without release",
-			yaml: `sdk-version: 3.4.5
-dependencies:
-  - git:
-      url: https://github.com/org/repo.git
-      ref: main
-      path: pkg/foo.dar
-      asset: bar.dar
-`,
-			err: "asset requires release",
-		},
-		{
-			name: "path without ref",
-			yaml: `sdk-version: 3.4.5
-dependencies:
-  - git:
-      url: https://github.com/org/repo.git
-      path: pkg/foo.dar
-`,
-			err: "path requires ref",
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			_, err := ReadFromContents([]byte(tc.yaml), "")
-			require.Error(t, err)
-			assert.Contains(t, err.Error(), tc.err)
-		})
-	}
+	_, err := ReadFromContents(contents, "")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, RawDependenciesSchemaErr)
 }
 
 func TestGitDependencyHostsAgreeAcrossLayers(t *testing.T) {
@@ -151,11 +94,4 @@ func TestParseGitDependency_gitLabReleaseIsRejectedWithGuidance(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "only supported for github.com")
 	assert.Contains(t, err.Error(), "?path=")
-}
-
-func loFirstDependency(p *DamlPackage) *ParsedDarDependency {
-	for _, d := range p.ParsedDarDependencies.Dependencies {
-		return d
-	}
-	return nil
 }

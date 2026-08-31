@@ -51,26 +51,6 @@ func FormatGitReleaseLine(cloneURL, releaseTag, asset string) string {
 	return "git:" + u.String()
 }
 
-// FormatGitStructuredLine builds a git: URI from structured YAML fields.
-func FormatGitStructuredLine(fields *GitStructuredFields) (string, error) {
-	if err := validateGitStructuredFields(fields); err != nil {
-		return "", err
-	}
-	if fields.URL == "" {
-		return "", fmt.Errorf("git dependency: url is required")
-	}
-	if fields.Release != "" {
-		return FormatGitReleaseLine(fields.URL, fields.Release, fields.Asset), nil
-	}
-	if fields.Ref == "" {
-		return "", fmt.Errorf("git dependency: ref or release is required")
-	}
-	if fields.Path == "" {
-		return "", fmt.Errorf("git dependency: path is required for repo-file dependencies")
-	}
-	return fmt.Sprintf("git:%s#%s?path=%s", fields.URL, fields.Ref, escapeGitDarPathQuery(fields.Path)), nil
-}
-
 // FormatGitReleaseBaseLine returns the git release dependency line without an asset.
 func FormatGitReleaseBaseLine(git GitSource) string {
 	if git.CloneURL == nil {

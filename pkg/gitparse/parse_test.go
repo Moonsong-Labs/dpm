@@ -225,19 +225,6 @@ func TestGitDarPathSurvivesCanonicalization(t *testing.T) {
 				"re-normalizing must not change the resolved dar path")
 		})
 	}
-
-	t.Run("structured path scalar is escaped", func(t *testing.T) {
-		line, err := FormatGitStructuredLine(&GitStructuredFields{
-			URL:  "github.com/org/repo",
-			Ref:  "main",
-			Path: "dist/foo+bar.dar",
-		})
-		require.NoError(t, err)
-
-		dep, err := ParseGitDependency(line)
-		require.NoError(t, err)
-		assert.Equal(t, "dist/foo+bar.dar", dep.Git.DarPath)
-	})
 }
 
 func TestGitLockKeyForDep_normalizesGitSuffix(t *testing.T) {
