@@ -238,8 +238,8 @@ func (d *DeepResolver) resolveDar(dar *damlpackage.ParsedDarDependency) ([]strin
 		return dars, nil
 	}
 	if scheme == "git" {
-		if dar.GitRelease {
-			if strings.TrimSpace(dar.DarPath) == "" {
+		if dar.Git.Release {
+			if strings.TrimSpace(dar.Git.DarPath) == "" {
 				return nil, resolutionerrors.NewDarNotInstalled(fmt.Errorf(
 					"git release %q is not expanded; run 'dpm update' to expand release dependencies",
 					gitReleaseBaseLine(dar),
@@ -248,7 +248,7 @@ func (d *DeepResolver) resolveDar(dar *damlpackage.ParsedDarDependency) ([]strin
 			if !gitpuller.DarIsCached(d.config, dar) {
 				return nil, resolutionerrors.NewDarNotInstalled(fmt.Errorf("%s is not installed", missingDarLabel(dar)))
 			}
-			cachedDar, err := d.config.CachePathForGitRelease(dar.CloneURL, dar.GitRef, dar.DarPath)
+			cachedDar, err := d.config.CachePathForGitRelease(dar.Git.CloneURL, dar.Git.Ref, dar.Git.DarPath)
 			if err != nil {
 				return nil, err
 			}
@@ -258,7 +258,7 @@ func (d *DeepResolver) resolveDar(dar *damlpackage.ParsedDarDependency) ([]strin
 			}
 			return []string{absPath}, nil
 		}
-		if damlpackage.GitRefIsMutable(dar.GitRef) {
+		if damlpackage.GitRefIsMutable(dar.Git.Ref) {
 			return nil, resolutionerrors.NewDarNotInstalled(fmt.Errorf(
 				"%s is not installed. Run 'dpm install package' or 'dpm update' to pin and fetch it",
 				damlpackage.FormatGitYamlLine(dar),
@@ -270,7 +270,7 @@ func (d *DeepResolver) resolveDar(dar *damlpackage.ParsedDarDependency) ([]strin
 				damlpackage.FormatGitYamlLine(dar),
 			))
 		}
-		cachedDar, err := d.config.CachePathForGitDependency(dar.CloneURL, dar.DarPath, dar.GitRef)
+		cachedDar, err := d.config.CachePathForGitDependency(dar.Git.CloneURL, dar.Git.DarPath, dar.Git.Ref)
 		if err != nil {
 			return nil, err
 		}

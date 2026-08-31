@@ -16,7 +16,7 @@ func TestCheckGitDependency_releaseDep(t *testing.T) {
 
 	dep, err := damlpackage.ParseGitDependency("git:github.com/org/repo?release=v1.0.0&asset=pkg-1.0.0.dar")
 	require.NoError(t, err)
-	require.True(t, dep.GitRelease)
+	require.True(t, dep.Git.Release)
 
 	ctx := context.Background()
 
@@ -24,7 +24,7 @@ func TestCheckGitDependency_releaseDep(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "not installed")
 
-	cached, err := config.CachePathForGitRelease(dep.CloneURL, dep.GitRef, dep.DarPath)
+	cached, err := config.CachePathForGitRelease(dep.Git.CloneURL, dep.Git.Ref, dep.Git.DarPath)
 	require.NoError(t, err)
 	require.NoError(t, os.MkdirAll(filepath.Dir(cached), 0o755))
 	require.NoError(t, os.WriteFile(cached, []byte("release dar"), 0o644))
@@ -37,7 +37,7 @@ func TestCheckGitDependency_unexpandedRelease(t *testing.T) {
 
 	dep, err := damlpackage.ParseGitDependency("git:github.com/org/repo?release=v1.0.0")
 	require.NoError(t, err)
-	require.True(t, dep.GitRelease)
+	require.True(t, dep.Git.Release)
 
 	err = checkGitDependency(context.Background(), config, dep)
 	require.Error(t, err)

@@ -27,7 +27,7 @@ func gitPinsFromExistingLock(lockfilePath string) map[string]string {
 }
 
 func gitDependencyForUpdate(dep *damlpackage.ParsedDarDependency, existingPins map[string]string) *damlpackage.ParsedDarDependency {
-	if dep == nil || dep.FullUrl == nil || !damlpackage.GitRefIsMutable(dep.GitRef) {
+	if dep == nil || dep.FullUrl == nil || !damlpackage.GitRefIsMutable(dep.Git.Ref) {
 		return dep
 	}
 	pinned, ok := existingPins[damlpackage.GitLockKey(dep.FullUrl)]

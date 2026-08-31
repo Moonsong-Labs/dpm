@@ -234,11 +234,11 @@ func InstallDar(ctx context.Context, config *assistantconfig.Config, dar *damlpa
 }
 
 func installGitDar(ctx context.Context, config *assistantconfig.Config, dar *damlpackage.ParsedDarDependency) (*damlpackage.ParsedDarDependency, error) {
-	if dar.GitRelease {
+	if dar.Git.Release {
 		if gitpuller.DarIsCached(config, dar) {
 			return nil, nil
 		}
-		fmt.Printf("installing git release asset %q...\n", dar.DarPath)
+		fmt.Printf("installing git release asset %q...\n", dar.Git.DarPath)
 	} else {
 		fmt.Printf("installing git dar %q...\n", damlpackage.FormatGitYamlLine(dar))
 		if gitpuller.DarIsCached(config, dar) {

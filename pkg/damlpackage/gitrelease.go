@@ -15,13 +15,13 @@ import (
 
 // DescribeGitFetch returns a short human-readable summary for progress output.
 func DescribeGitFetch(dep *ParsedDarDependency) string {
-	if dep == nil || dep.CloneURL == nil {
+	if dep == nil || dep.Git.CloneURL == nil {
 		return "git dependency"
 	}
-	if dep.GitRelease {
-		return fmt.Sprintf("%s release %q asset %q", dep.CloneURL.String(), dep.GitRef, dep.DarPath)
+	if dep.Git.Release {
+		return fmt.Sprintf("%s release %q asset %q", dep.Git.CloneURL.String(), dep.Git.Ref, dep.Git.DarPath)
 	}
-	return fmt.Sprintf("%s @ %q path %q", dep.CloneURL.String(), dep.GitRef, dep.DarPath)
+	return fmt.Sprintf("%s @ %q path %q", dep.Git.CloneURL.String(), dep.Git.Ref, dep.Git.DarPath)
 }
 
 // FormatGitReleaseLine builds git:...?release=TAG&asset=NAME (asset may be empty).
@@ -63,10 +63,10 @@ func FormatGitStructuredLine(fields *GitStructuredFields) (string, error) {
 
 // FormatGitReleaseBaseLine returns the git release dependency line without an asset.
 func FormatGitReleaseBaseLine(dep *ParsedDarDependency) string {
-	if dep == nil || dep.CloneURL == nil {
+	if dep == nil || dep.Git.CloneURL == nil {
 		return ""
 	}
-	return FormatGitReleaseLine(gitDependencyCloneURLString(dep.CloneURL), dep.GitRef, "")
+	return FormatGitReleaseLine(gitDependencyCloneURLString(dep.Git.CloneURL), dep.Git.Ref, "")
 }
 
 // ExpandGitReleaseDependenciesInYaml expands release entries without assets in a daml.yaml field.
@@ -76,7 +76,7 @@ func ExpandGitReleaseDependenciesInYaml(ctx context.Context, yamlPath, fieldName
 	}
 
 	expansionInputs, err := resolveGitAliasInputs(yamlPath, fieldName, rawDeps, func(dep *ParsedDarDependency) (string, bool) {
-		if dep == nil || !dep.GitRelease || strings.TrimSpace(dep.DarPath) != "" {
+		if dep == nil || !dep.Git.Release || strings.TrimSpace(dep.Git.DarPath) != "" {
 			return "", false
 		}
 		return FormatGitReleaseBaseLine(dep), true
@@ -137,7 +137,7 @@ func expandReleaseGitDependenciesRaw(ctx context.Context, rawDeps []*RawDependen
 		if err != nil {
 			return nil, nil, err
 		}
-		if !dep.GitRelease || strings.TrimSpace(dep.DarPath) == "" {
+		if !dep.Git.Release || strings.TrimSpace(dep.Git.DarPath) == "" {
 			continue
 		}
 		key, err := GitLockKeyForDep(dep)
@@ -163,28 +163,28 @@ func expandReleaseGitDependenciesRaw(ctx context.Context, rawDeps []*RawDependen
 		if err != nil {
 			return nil, nil, err
 		}
-		if !dep.GitRelease {
+		if !dep.Git.Release {
 			out = append(out, rawDep)
 			sourceIndices = append(sourceIndices, sourceIndex)
 			continue
 		}
-		if err := githubrelease.ValidateReleaseHost(dep.CloneURL); err != nil {
+		if err := githubrelease.ValidateReleaseHost(dep.Git.CloneURL); err != nil {
 			return nil, nil, err
 		}
-		if strings.TrimSpace(dep.DarPath) != "" {
+		if strings.TrimSpace(dep.Git.DarPath) != "" {
 			out = append(out, rawDep)
 			sourceIndices = append(sourceIndices, sourceIndex)
 			continue
 		}
 		_, _ = fmt.Fprintf(os.Stderr, "Resolving git release: listing .dar assets for %s release %q\n",
-			dep.CloneURL.String(), dep.GitRef)
-		assets, err := githubrelease.ListDarAssets(ctx, dep.CloneURL, dep.GitRef)
+			dep.Git.CloneURL.String(), dep.Git.Ref)
+		assets, err := githubrelease.ListDarAssets(ctx, dep.Git.CloneURL, dep.Git.Ref)
 		if err != nil {
-			return nil, nil, fmt.Errorf("git release %q: %w", dep.GitRef, err)
+			return nil, nil, fmt.Errorf("git release %q: %w", dep.Git.Ref, err)
 		}
 		for _, asset := range assets {
 			assetDep := *dep
-			assetDep.DarPath = asset
+			assetDep.Git.DarPath = asset
 			key, err := GitLockKeyForDep(&assetDep)
 			if err != nil {
 				return nil, nil, err
@@ -194,7 +194,7 @@ func expandReleaseGitDependenciesRaw(ctx context.Context, rawDeps []*RawDependen
 			}
 			existingAssets[key] = struct{}{}
 
-			expandedLine := FormatGitReleaseLine(gitDependencyCloneURLString(dep.CloneURL), dep.GitRef, asset)
+			expandedLine := FormatGitReleaseLine(gitDependencyCloneURLString(dep.Git.CloneURL), dep.Git.Ref, asset)
 			expanded, err := rawDependencyWithValue(rawDep, expandedLine)
 			if err != nil {
 				return nil, nil, err

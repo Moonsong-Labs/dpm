@@ -33,14 +33,14 @@ func formatMissingDarsError(missing []*damlpackage.ParsedDarDependency) error {
 	var other []*damlpackage.ParsedDarDependency
 
 	for _, dep := range missing {
-		if dep.GitRelease && strings.TrimSpace(dep.DarPath) != "" {
+		if dep.Git.Release && strings.TrimSpace(dep.Git.DarPath) != "" {
 			base := gitReleaseBaseLine(dep)
 			g, ok := byRelease[base]
 			if !ok {
 				g = &releaseGroup{baseLine: base}
 				byRelease[base] = g
 			}
-			g.assets = append(g.assets, dep.DarPath)
+			g.assets = append(g.assets, dep.Git.DarPath)
 			continue
 		}
 		other = append(other, dep)

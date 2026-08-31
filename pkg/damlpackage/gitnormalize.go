@@ -25,8 +25,8 @@ func CoerceGitDependencyInput(raw string, opts GitInputOptions) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	if dep.GitRelease {
-		if err := githubrelease.ValidateReleaseHost(dep.CloneURL); err != nil {
+	if dep.Git.Release {
+		if err := githubrelease.ValidateReleaseHost(dep.Git.CloneURL); err != nil {
 			return "", err
 		}
 	}

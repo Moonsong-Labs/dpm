@@ -262,9 +262,9 @@ dependencies:
 		value, err := pkg.Dependencies[0].Value()
 		require.NoError(t, err)
 		dep := lo.Values(pkg.ParsedDarDependencies.Dependencies)[0]
-		assert.False(t, damlpackage.GitRefIsMutable(dep.GitRef), "expected commit SHA pin in yaml ref")
-		assert.NotEqual(t, "main", dep.GitRef)
-		assert.Contains(t, value, dep.GitRef)
+		assert.False(t, damlpackage.GitRefIsMutable(dep.Git.Ref), "expected commit SHA pin in yaml ref")
+		assert.NotEqual(t, "main", dep.Git.Ref)
+		assert.Contains(t, value, dep.Git.Ref)
 	})
 
 	t.Run("should execute dpm resolve without errors", func(t *testing.T) {
@@ -283,7 +283,7 @@ dependencies:
 		pkg, err := damlpackage.Read(filepath.Join(projectDir, "daml.yaml"))
 		require.NoError(t, err)
 		dep := lo.Values(pkg.ParsedDarDependencies.Dependencies)[0]
-		expected, err := config.CachePathForGitDependency(dep.CloneURL, dep.DarPath, dep.GitRef)
+		expected, err := config.CachePathForGitDependency(dep.Git.CloneURL, dep.Git.DarPath, dep.Git.Ref)
 		require.NoError(t, err)
 		assert.Equal(t, expected, cachedPath)
 	})
@@ -328,7 +328,7 @@ dependencies:
 
 	secondCached, err := damlpackage.ParseGitDependency(secondDep)
 	require.NoError(t, err)
-	secondCachedPath, err := config.CachePathForGitDependency(secondCached.CloneURL, secondCached.DarPath, secondCommit.String())
+	secondCachedPath, err := config.CachePathForGitDependency(secondCached.Git.CloneURL, secondCached.Git.DarPath, secondCommit.String())
 	require.NoError(t, err)
 	assert.FileExists(t, secondCachedPath)
 	secondContent, err := os.ReadFile(secondCachedPath)
@@ -344,7 +344,7 @@ dependencies:
 
 	firstCached, err := damlpackage.ParseGitDependency(firstDep)
 	require.NoError(t, err)
-	firstCachedPath, err := config.CachePathForGitDependency(firstCached.CloneURL, firstCached.DarPath, firstCommit)
+	firstCachedPath, err := config.CachePathForGitDependency(firstCached.Git.CloneURL, firstCached.Git.DarPath, firstCommit)
 	require.NoError(t, err)
 	firstContent, err := os.ReadFile(firstCachedPath)
 	require.NoError(t, err)
@@ -381,7 +381,7 @@ data-dependencies:
 	pkg, err := damlpackage.Read(filepath.Join(projectDir, "daml.yaml"))
 	require.NoError(t, err)
 	dep := lo.Values(pkg.ParsedDarDependencies.DataDependencies)[0]
-	assert.False(t, damlpackage.GitRefIsMutable(dep.GitRef))
+	assert.False(t, damlpackage.GitRefIsMutable(dep.Git.Ref))
 	require.NotNil(t, pkg.DataDependencies[0].GetMainPackageId())
 	assert.Equal(t, packageID, *pkg.DataDependencies[0].GetMainPackageId())
 
@@ -391,7 +391,7 @@ data-dependencies:
 	require.Len(t, res.GetResolvedDataDependencies(), 1)
 	cachedPath := res.GetResolvedDataDependencies()[0]
 	assert.FileExists(t, cachedPath)
-	expected, err := config.CachePathForGitDependency(dep.CloneURL, dep.DarPath, dep.GitRef)
+	expected, err := config.CachePathForGitDependency(dep.Git.CloneURL, dep.Git.DarPath, dep.Git.Ref)
 	require.NoError(t, err)
 	assert.Equal(t, expected, cachedPath)
 
@@ -445,10 +445,10 @@ artifact-locations:
 		assert.NotContains(t, value, "#main?")
 		dep := pkg.ParsedDarDependencies.Dependencies[value]
 		require.NotNil(t, dep)
-		assert.False(t, damlpackage.GitRefIsMutable(dep.GitRef))
-		assert.Contains(t, []string{"packages/foo.dar", "packages/bar.dar"}, dep.DarPath)
+		assert.False(t, damlpackage.GitRefIsMutable(dep.Git.Ref))
+		assert.Contains(t, []string{"packages/foo.dar", "packages/bar.dar"}, dep.Git.DarPath)
 
-		cached, err := config.CachePathForGitDependency(dep.CloneURL, dep.DarPath, dep.GitRef)
+		cached, err := config.CachePathForGitDependency(dep.Git.CloneURL, dep.Git.DarPath, dep.Git.Ref)
 		require.NoError(t, err)
 		assert.FileExists(t, cached)
 	}

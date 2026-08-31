@@ -26,6 +26,13 @@ type ArtifactLocation struct {
 	Client *auth.Client
 }
 
+type GitSource struct {
+	Ref      string
+	DarPath  string
+	CloneURL *url.URL
+	Release  bool
+}
+
 type ParsedDarDependency struct {
 	// the fully-qualified URL for the artifact e.g. oci://example.com/foo/bar/baz:1.2.3
 	FullUrl *url.URL
@@ -33,10 +40,7 @@ type ParsedDarDependency struct {
 	// can be nil when the corresponding dependency is already fully qualified and doesn't rely on an artifact-location
 	Location *ArtifactLocation
 
-	GitRef     string
-	DarPath    string
-	CloneURL   *url.URL
-	GitRelease bool
+	Git GitSource
 
 	MainPackageId *string
 

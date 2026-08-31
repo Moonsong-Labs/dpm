@@ -97,7 +97,7 @@ func TestGitDarPuller_fileRepo(t *testing.T) {
 	assert.NotEmpty(t, pulled.ResolvedRef)
 	assert.FileExists(t, pulled.DarFilePath)
 	assert.Contains(t, pulled.Digest, "sha256:")
-	expected, err := config.CachePathForGitDependency(dep.CloneURL, dep.DarPath, pulled.ResolvedRef)
+	expected, err := config.CachePathForGitDependency(dep.Git.CloneURL, dep.Git.DarPath, pulled.ResolvedRef)
 	require.NoError(t, err)
 	assert.Equal(t, expected, pulled.DarFilePath)
 
@@ -123,7 +123,7 @@ func TestPullGitDar_rejectsEmptySourceBeforeCachingOrPinning(t *testing.T) {
 	mainRef, err := sourceRepo.Reference(plumbing.NewBranchReferenceName("main"), true)
 	require.NoError(t, err)
 	pinned := dep.WithGitRef(mainRef.Hash().String())
-	cachedPath, err := config.CachePathForGitDependency(dep.CloneURL, dep.DarPath, pinned.GitRef)
+	cachedPath, err := config.CachePathForGitDependency(dep.Git.CloneURL, dep.Git.DarPath, pinned.Git.Ref)
 	require.NoError(t, err)
 
 	result, err := PullGitDar(t.Context(), config, dep)
@@ -148,10 +148,12 @@ func TestFetchMissingReleaseAssets(t *testing.T) {
 	cloneURL, err := url.Parse("http://" + host + "/org/repo")
 	require.NoError(t, err)
 	dep := &damlpackage.ParsedDarDependency{
-		CloneURL:   cloneURL,
-		GitRef:     tag,
-		DarPath:    asset,
-		GitRelease: true,
+		Git: damlpackage.GitSource{
+			CloneURL: cloneURL,
+			Ref:      tag,
+			DarPath:  asset,
+			Release:  true,
+		},
 	}
 
 	config, err := assistantconfig.GetWithCustomDamlHome(t.TempDir())
@@ -230,10 +232,12 @@ func TestGitDarPuller_refetchesEmptyReleaseCache(t *testing.T) {
 	cloneURL, err := url.Parse("http://" + host + "/org/repo")
 	require.NoError(t, err)
 	dep := &damlpackage.ParsedDarDependency{
-		CloneURL:   cloneURL,
-		GitRef:     tag,
-		DarPath:    asset,
-		GitRelease: true,
+		Git: damlpackage.GitSource{
+			CloneURL: cloneURL,
+			Ref:      tag,
+			DarPath:  asset,
+			Release:  true,
+		},
 	}
 
 	config, err := assistantconfig.GetWithCustomDamlHome(t.TempDir())
@@ -270,7 +274,7 @@ func TestGitDarPuller_skipsFetchWhenPinnedCacheExists(t *testing.T) {
 	pulled, err := New(config).PullDar(t.Context(), dep)
 	require.NoError(t, err)
 
-	workPath, err := config.GitWorkPathForRepo(dep.CloneURL)
+	workPath, err := config.GitWorkPathForRepo(dep.Git.CloneURL)
 	require.NoError(t, err)
 	require.NoError(t, os.RemoveAll(workPath))
 

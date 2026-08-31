@@ -89,7 +89,7 @@ func ReportPreparedGitDependencies(config *assistantconfig.Config, pkg *damlpack
 func GitReleaseAssets(deps []*damlpackage.ParsedDarDependency) []*damlpackage.ParsedDarDependency {
 	var releaseDeps []*damlpackage.ParsedDarDependency
 	for _, dep := range deps {
-		if dep == nil || !dep.GitRelease || strings.TrimSpace(dep.DarPath) == "" {
+		if dep == nil || !dep.Git.Release || strings.TrimSpace(dep.Git.DarPath) == "" {
 			continue
 		}
 		releaseDeps = append(releaseDeps, dep)
@@ -113,7 +113,7 @@ func CountCachedReleaseAssets(config *assistantconfig.Config, deps []*damlpackag
 func FetchMissingReleaseAssets(ctx context.Context, config *assistantconfig.Config, deps []*damlpackage.ParsedDarDependency) (int, error) {
 	fetched := 0
 	for _, dep := range deps {
-		if dep == nil || !dep.GitRelease || strings.TrimSpace(dep.DarPath) == "" {
+		if dep == nil || !dep.Git.Release || strings.TrimSpace(dep.Git.DarPath) == "" {
 			continue
 		}
 		if DarIsCached(config, dep) {

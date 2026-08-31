@@ -203,13 +203,13 @@ func (c *updateCmd) updateDar(ctx context.Context, dep *damlpackage.ParsedDarDep
 }
 
 func (c *updateCmd) updateGitDar(ctx context.Context, dep *damlpackage.ParsedDarDependency, yamlTarget yamledit.YamlTarget) error {
-	if dep.GitRelease {
+	if dep.Git.Release {
 		return nil
 	}
 
 	uri := damlpackage.FormatGitYamlLine(dep)
 
-	if damlpackage.GitRefIsMutable(dep.GitRef) {
+	if damlpackage.GitRefIsMutable(dep.Git.Ref) {
 		fmt.Printf("Updating git dar %q...\n", uri)
 
 		target := yamlTarget.Copy()
@@ -259,11 +259,11 @@ func (c *updateCmd) checkGitDependencies(ctx context.Context) error {
 }
 
 func checkGitDependency(ctx context.Context, config *assistantconfig.Config, dep *damlpackage.ParsedDarDependency) error {
-	if dep.GitRelease {
-		if strings.TrimSpace(dep.DarPath) == "" {
+	if dep.Git.Release {
+		if strings.TrimSpace(dep.Git.DarPath) == "" {
 			return fmt.Errorf(
 				"git release %q has no asset; run dpm update to expand release dependencies",
-				dep.GitRef,
+				dep.Git.Ref,
 			)
 		}
 		if !gitpuller.DarIsCached(config, dep) {
@@ -275,7 +275,7 @@ func checkGitDependency(ctx context.Context, config *assistantconfig.Config, dep
 		return nil
 	}
 
-	if damlpackage.GitRefIsMutable(dep.GitRef) {
+	if damlpackage.GitRefIsMutable(dep.Git.Ref) {
 		return damlpackage.GitMissingPinError(dep)
 	}
 
@@ -291,7 +291,7 @@ func checkGitDependency(ctx context.Context, config *assistantconfig.Config, dep
 		return fmt.Errorf("git dependency %q: %w", damlpackage.FormatGitYamlLine(dep), err)
 	}
 
-	cachedDar, err := config.CachePathForGitDependency(dep.CloneURL, dep.DarPath, dep.GitRef)
+	cachedDar, err := config.CachePathForGitDependency(dep.Git.CloneURL, dep.Git.DarPath, dep.Git.Ref)
 	if err != nil {
 		return fmt.Errorf("git dependency %q: %w", damlpackage.FormatGitYamlLine(dep), err)
 	}

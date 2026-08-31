@@ -14,11 +14,11 @@ func TestParseGitDependency(t *testing.T) {
 	raw := "git:github.com/org/repo.git#main?path=loyalty.dar"
 	dep, err := ParseGitDependency(raw)
 	require.NoError(t, err)
-	assert.Equal(t, "main", dep.GitRef)
-	assert.Equal(t, "loyalty.dar", dep.DarPath)
-	assert.Equal(t, "https", dep.CloneURL.Scheme)
-	assert.Equal(t, "github.com", dep.CloneURL.Host)
-	assert.Equal(t, "/org/repo.git", dep.CloneURL.Path)
+	assert.Equal(t, "main", dep.Git.Ref)
+	assert.Equal(t, "loyalty.dar", dep.Git.DarPath)
+	assert.Equal(t, "https", dep.Git.CloneURL.Scheme)
+	assert.Equal(t, "github.com", dep.Git.CloneURL.Host)
+	assert.Equal(t, "/org/repo.git", dep.Git.CloneURL.Path)
 	assert.Equal(t, "git", dep.Scheme())
 }
 
@@ -28,8 +28,8 @@ func TestParseGitDependency_pinnedRef(t *testing.T) {
 	raw := "git:https://github.com/org/repo.git#" + strings.Repeat("a", 40) + "?path=loyalty.dar"
 	dep, err := ParseGitDependency(raw)
 	require.NoError(t, err)
-	assert.Equal(t, strings.Repeat("a", 40), dep.GitRef)
-	assert.False(t, GitRefIsMutable(dep.GitRef))
+	assert.Equal(t, strings.Repeat("a", 40), dep.Git.Ref)
+	assert.False(t, GitRefIsMutable(dep.Git.Ref))
 }
 
 func TestParseGitDependency_releaseInRepoPath(t *testing.T) {
@@ -38,9 +38,9 @@ func TestParseGitDependency_releaseInRepoPath(t *testing.T) {
 	raw := "git:https://github.com/org/release=foo.git#main?path=loyalty.dar"
 	dep, err := ParseGitDependency(raw)
 	require.NoError(t, err)
-	assert.Equal(t, "main", dep.GitRef)
-	assert.Equal(t, "loyalty.dar", dep.DarPath)
-	assert.False(t, dep.GitRelease)
+	assert.Equal(t, "main", dep.Git.Ref)
+	assert.Equal(t, "loyalty.dar", dep.Git.DarPath)
+	assert.False(t, dep.Git.Release)
 }
 
 func TestParseGitReleaseDependency_emptyAsset(t *testing.T) {
@@ -65,9 +65,9 @@ func TestParseGitReleaseDependency_emptyAsset(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			dep, err := ParseGitDependency(tc.raw)
 			require.NoError(t, err)
-			assert.True(t, dep.GitRelease)
-			assert.Equal(t, tag, dep.GitRef)
-			assert.Empty(t, dep.DarPath)
+			assert.True(t, dep.Git.Release)
+			assert.Equal(t, tag, dep.Git.Ref)
+			assert.Empty(t, dep.Git.DarPath)
 		})
 	}
 }
@@ -145,8 +145,8 @@ data-dependencies:
 	require.NoError(t, err)
 	dep, ok := p.ParsedDarDependencies.DataDependencies[raw]
 	require.True(t, ok)
-	assert.Equal(t, "main", dep.GitRef)
-	assert.Equal(t, "pkg/foo.dar", dep.DarPath)
+	assert.Equal(t, "main", dep.Git.Ref)
+	assert.Equal(t, "pkg/foo.dar", dep.Git.DarPath)
 }
 
 func TestGitDependency_inDependencies(t *testing.T) {
@@ -159,8 +159,8 @@ dependencies:
 	require.NoError(t, err)
 	dep, ok := p.ParsedDarDependencies.Dependencies[raw]
 	require.True(t, ok)
-	assert.Equal(t, "main", dep.GitRef)
-	assert.Equal(t, "pkg/foo.dar", dep.DarPath)
+	assert.Equal(t, "main", dep.Git.Ref)
+	assert.Equal(t, "pkg/foo.dar", dep.Git.DarPath)
 }
 
 func TestFormatGitYamlLine(t *testing.T) {
@@ -176,7 +176,7 @@ func TestFormatGitYamlLine(t *testing.T) {
 func TestFormatGitYamlLine_writesCanonicalPath(t *testing.T) {
 	dep, err := ParseGitDependency("git:github.com/org/repo.git#main?path=pkg%2Ffoo.dar")
 	require.NoError(t, err)
-	assert.Equal(t, "pkg/foo.dar", dep.DarPath)
+	assert.Equal(t, "pkg/foo.dar", dep.Git.DarPath)
 	assert.Equal(t,
 		"git:github.com/org/repo#main?path=pkg/foo.dar",
 		FormatGitYamlLine(dep),
@@ -256,13 +256,13 @@ func TestGitDarPathSurvivesCanonicalization(t *testing.T) {
 
 			dep, err := ParseGitDependency(canonical)
 			require.NoError(t, err)
-			assert.Equal(t, tt.wantDarPath, dep.DarPath)
+			assert.Equal(t, tt.wantDarPath, dep.Git.DarPath)
 
 			recoerced, err := CoerceGitDependencyInput(canonical, GitInputOptions{RequireGitPrefix: true})
 			require.NoError(t, err)
 			redep, err := ParseGitDependency(recoerced)
 			require.NoError(t, err)
-			assert.Equal(t, tt.wantDarPath, redep.DarPath,
+			assert.Equal(t, tt.wantDarPath, redep.Git.DarPath,
 				"re-normalizing must not change the resolved dar path")
 		})
 	}
@@ -277,7 +277,7 @@ func TestGitDarPathSurvivesCanonicalization(t *testing.T) {
 
 		dep, err := ParseGitDependency(line)
 		require.NoError(t, err)
-		assert.Equal(t, "dist/foo+bar.dar", dep.DarPath)
+		assert.Equal(t, "dist/foo+bar.dar", dep.Git.DarPath)
 	})
 }
 
@@ -293,8 +293,8 @@ dependencies:
 	require.NoError(t, err)
 	require.Len(t, p.ParsedDarDependencies.Dependencies, 1)
 	dep := loFirstDependency(p)
-	assert.Equal(t, "main", dep.GitRef)
-	assert.Equal(t, "pkg/foo.dar", dep.DarPath)
+	assert.Equal(t, "main", dep.Git.Ref)
+	assert.Equal(t, "pkg/foo.dar", dep.Git.DarPath)
 }
 
 func TestParseGitStructuredDependency_conflictingFields(t *testing.T) {

@@ -137,7 +137,7 @@ func TestParseGitDependency_gitLabReleaseIsRejectedWithGuidance(t *testing.T) {
 
 	dep, err := ParseGitDependency("git:gitlab.com/org/repo?release=v1.0.0&asset=foo.dar")
 	require.NoError(t, err)
-	assert.True(t, dep.GitRelease)
+	assert.True(t, dep.Git.Release)
 
 	_, err = ExpandReleaseGitDependenciesRaw(t.Context(), []*RawDependency{
 		rawDependencyFromValue("git:gitlab.com/org/repo?release=v1.0.0"),

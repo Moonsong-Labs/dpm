@@ -44,15 +44,15 @@ func New(config *assistantconfig.Config) *GitDarPuller {
 
 // DarIsCached reports whether the local cache already contains the .dar for this dependency.
 func DarIsCached(config *assistantconfig.Config, dep *damlpackage.ParsedDarDependency) bool {
-	if config == nil || dep == nil || dep.CloneURL == nil {
+	if config == nil || dep == nil || dep.Git.CloneURL == nil {
 		return false
 	}
 	var cachedPath string
 	var err error
-	if dep.GitRelease {
-		cachedPath, err = config.CachePathForGitRelease(dep.CloneURL, dep.GitRef, dep.DarPath)
+	if dep.Git.Release {
+		cachedPath, err = config.CachePathForGitRelease(dep.Git.CloneURL, dep.Git.Ref, dep.Git.DarPath)
 	} else {
-		cachedPath, err = config.CachePathForGitDependency(dep.CloneURL, dep.DarPath, dep.GitRef)
+		cachedPath, err = config.CachePathForGitDependency(dep.Git.CloneURL, dep.Git.DarPath, dep.Git.Ref)
 	}
 	if err != nil {
 		return false
@@ -77,12 +77,12 @@ func PullGitDar(ctx context.Context, config *assistantconfig.Config, dep *damlpa
 		return nil, err
 	}
 
-	if !damlpackage.GitRefIsMutable(dep.GitRef) && dep.GitRef != pulled.ResolvedRef {
+	if !damlpackage.GitRefIsMutable(dep.Git.Ref) && dep.Git.Ref != pulled.ResolvedRef {
 		return nil, damlpackage.GitPinMismatchError(dep, pulled.ResolvedRef)
 	}
 
 	var pinned *damlpackage.ParsedDarDependency
-	if damlpackage.GitRefIsMutable(dep.GitRef) && !dep.GitRelease {
+	if damlpackage.GitRefIsMutable(dep.Git.Ref) && !dep.Git.Release {
 		pinned = dep.WithGitRef(pulled.ResolvedRef)
 	}
 
@@ -90,16 +90,16 @@ func PullGitDar(ctx context.Context, config *assistantconfig.Config, dep *damlpa
 }
 
 func (p *GitDarPuller) PullDar(ctx context.Context, dep *damlpackage.ParsedDarDependency) (*PulledGitDar, error) {
-	if dep == nil || dep.CloneURL == nil {
+	if dep == nil || dep.Git.CloneURL == nil {
 		return nil, fmt.Errorf("invalid git dependency: missing clone URL")
 	}
-	if dep.GitRelease {
+	if dep.Git.Release {
 		_, _ = fmt.Fprintf(os.Stderr, "Resolving git release: downloading %s\n", damlpackage.DescribeGitFetch(dep))
 		return p.pullReleaseDar(ctx, dep)
 	}
 
-	if !damlpackage.GitRefIsMutable(dep.GitRef) {
-		cachedDar, err := p.config.CachePathForGitDependency(dep.CloneURL, dep.DarPath, dep.GitRef)
+	if !damlpackage.GitRefIsMutable(dep.Git.Ref) {
+		cachedDar, err := p.config.CachePathForGitDependency(dep.Git.CloneURL, dep.Git.DarPath, dep.Git.Ref)
 		if err != nil {
 			return nil, err
 		}
@@ -109,7 +109,7 @@ func (p *GitDarPuller) PullDar(ctx context.Context, dep *damlpackage.ParsedDarDe
 				return nil, err
 			}
 			return &PulledGitDar{
-				ResolvedRef: dep.GitRef,
+				ResolvedRef: dep.Git.Ref,
 				DarFilePath: cachedDar,
 				Digest:      digest,
 			}, nil
@@ -118,8 +118,8 @@ func (p *GitDarPuller) PullDar(ctx context.Context, dep *damlpackage.ParsedDarDe
 
 	_, _ = fmt.Fprintf(os.Stderr, "Resolving git dependency: fetching %s\n", damlpackage.DescribeGitFetch(dep))
 
-	cloneURL := dep.CloneURL.String()
-	workBase, err := p.config.GitWorkPathForRepo(dep.CloneURL)
+	cloneURL := dep.Git.CloneURL.String()
+	workBase, err := p.config.GitWorkPathForRepo(dep.Git.CloneURL)
 	if err != nil {
 		return nil, err
 	}
@@ -128,9 +128,9 @@ func (p *GitDarPuller) PullDar(ctx context.Context, dep *damlpackage.ParsedDarDe
 		return nil, err
 	}
 
-	repo, commitSHA, err := p.cloneOrOpen(ctx, workBase, cloneURL, dep.GitRef)
+	repo, commitSHA, err := p.cloneOrOpen(ctx, workBase, cloneURL, dep.Git.Ref)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch git repository %s (ref %q): %w", cloneURL, dep.GitRef, err)
+		return nil, fmt.Errorf("failed to fetch git repository %s (ref %q): %w", cloneURL, dep.Git.Ref, err)
 	}
 
 	worktree, err := repo.Worktree()
@@ -138,31 +138,31 @@ func (p *GitDarPuller) PullDar(ctx context.Context, dep *damlpackage.ParsedDarDe
 		return nil, err
 	}
 
-	sourceDar, err := damlpackage.JoinRepoRelativeDarPath(worktree.Filesystem.Root(), dep.DarPath)
+	sourceDar, err := damlpackage.JoinRepoRelativeDarPath(worktree.Filesystem.Root(), dep.Git.DarPath)
 	if err != nil {
-		return nil, fmt.Errorf("git dependency %q: %w", dep.DarPath, err)
+		return nil, fmt.Errorf("git dependency %q: %w", dep.Git.DarPath, err)
 	}
 	if err := damlpackage.RejectSymlinkOutsideRoot(worktree.Filesystem.Root(), sourceDar); err != nil {
-		return nil, fmt.Errorf("git dependency %q: %w", dep.DarPath, err)
+		return nil, fmt.Errorf("git dependency %q: %w", dep.Git.DarPath, err)
 	}
 	info, err := os.Stat(sourceDar)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"dar file %q not found at commit %s in %s: %w; ensure the repository contains a pre-built .dar at that path",
-			dep.DarPath, commitSHA, cloneURL, err,
+			dep.Git.DarPath, commitSHA, cloneURL, err,
 		)
 	}
 	if info.IsDir() {
-		return nil, fmt.Errorf("dar path %q at commit %s in %s is a directory, expected a .dar file", dep.DarPath, commitSHA, cloneURL)
+		return nil, fmt.Errorf("dar path %q at commit %s in %s is a directory, expected a .dar file", dep.Git.DarPath, commitSHA, cloneURL)
 	}
 	if info.Size() == 0 {
 		return nil, fmt.Errorf(
 			"dar file %q at commit %s in %s is empty; ensure the repository contains a non-empty pre-built .dar at that path",
-			dep.DarPath, commitSHA, cloneURL,
+			dep.Git.DarPath, commitSHA, cloneURL,
 		)
 	}
 
-	cachedDar, err := p.config.CachePathForGitDependency(dep.CloneURL, dep.DarPath, commitSHA)
+	cachedDar, err := p.config.CachePathForGitDependency(dep.Git.CloneURL, dep.Git.DarPath, commitSHA)
 	if err != nil {
 		return nil, err
 	}
@@ -186,15 +186,15 @@ func (p *GitDarPuller) PullDar(ctx context.Context, dep *damlpackage.ParsedDarDe
 }
 
 func (p *GitDarPuller) pullReleaseDar(ctx context.Context, dep *damlpackage.ParsedDarDependency) (*PulledGitDar, error) {
-	asset := strings.TrimSpace(dep.DarPath)
+	asset := strings.TrimSpace(dep.Git.DarPath)
 	if asset == "" {
 		return nil, fmt.Errorf(
 			"git release %q has no asset; run dpm update to expand release dependencies",
-			dep.GitRef,
+			dep.Git.Ref,
 		)
 	}
 
-	cachedDar, err := p.config.CachePathForGitRelease(dep.CloneURL, dep.GitRef, asset)
+	cachedDar, err := p.config.CachePathForGitRelease(dep.Git.CloneURL, dep.Git.Ref, asset)
 	if err != nil {
 		return nil, err
 	}
@@ -208,15 +208,15 @@ func (p *GitDarPuller) pullReleaseDar(ctx context.Context, dep *damlpackage.Pars
 			return nil, err
 		}
 		return &PulledGitDar{
-			ResolvedRef: dep.GitRef,
+			ResolvedRef: dep.Git.Ref,
 			DarFilePath: cachedDar,
 			Digest:      digest,
 		}, nil
 	}
 
-	darPath, err := githubrelease.DownloadAsset(ctx, dep.CloneURL, dep.GitRef, asset, filepath.Dir(cachedDar))
+	darPath, err := githubrelease.DownloadAsset(ctx, dep.Git.CloneURL, dep.Git.Ref, asset, filepath.Dir(cachedDar))
 	if err != nil {
-		return nil, fmt.Errorf("failed to download release asset %q (release %q): %w", asset, dep.GitRef, err)
+		return nil, fmt.Errorf("failed to download release asset %q (release %q): %w", asset, dep.Git.Ref, err)
 	}
 	if darPath != cachedDar {
 		if err := utils.AtomicCopyFile(darPath, cachedDar); err != nil {
@@ -230,7 +230,7 @@ func (p *GitDarPuller) pullReleaseDar(ctx context.Context, dep *damlpackage.Pars
 	}
 
 	return &PulledGitDar{
-		ResolvedRef: dep.GitRef,
+		ResolvedRef: dep.Git.Ref,
 		DarFilePath: cachedDar,
 		Digest:      digest,
 	}, nil

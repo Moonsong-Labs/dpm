@@ -19,11 +19,13 @@ func TestFormatMissingDarsError_releaseGroup(t *testing.T) {
 	var missing []*damlpackage.ParsedDarDependency
 	for _, asset := range []string{"foo.dar", "bar.dar", "baz.dar"} {
 		missing = append(missing, &damlpackage.ParsedDarDependency{
-			FullUrl:    mustParseGitReleaseURL(t, release, asset),
-			GitRef:     release,
-			DarPath:    asset,
-			CloneURL:   cloneURL,
-			GitRelease: true,
+			FullUrl: mustParseGitReleaseURL(t, release, asset),
+			Git: damlpackage.GitSource{
+				Ref:      release,
+				DarPath:  asset,
+				CloneURL: cloneURL,
+				Release:  true,
+			},
 		})
 	}
 

@@ -207,7 +207,7 @@ func addOrUpdateGitDar(ctx context.Context, config *assistantconfig.Config, uri 
 		return err
 	}
 
-	if dep.GitRelease && strings.TrimSpace(dep.DarPath) == "" {
+	if dep.Git.Release && strings.TrimSpace(dep.Git.DarPath) == "" {
 		return addOrUpdateGitReleaseDar(ctx, config, dep, yamlTarget)
 	}
 
@@ -217,7 +217,7 @@ func addOrUpdateGitDar(ctx context.Context, config *assistantconfig.Config, uri 
 func addOrUpdateGitReleaseDar(ctx context.Context, config *assistantconfig.Config, dep *damlpackage.ParsedDarDependency, yamlTarget yamledit.YamlTarget) (retErr error) {
 	damlPackagePath := yamlTarget.YamlFilePath
 
-	if err := githubrelease.ValidateReleaseHost(dep.CloneURL); err != nil {
+	if err := githubrelease.ValidateReleaseHost(dep.Git.CloneURL); err != nil {
 		return err
 	}
 
@@ -267,11 +267,11 @@ func addOrUpdateGitReleaseDar(ctx context.Context, config *assistantconfig.Confi
 
 	var releaseDeps []*damlpackage.ParsedDarDependency
 	for _, d := range parsedDeps {
-		if !d.GitRelease || strings.TrimSpace(d.DarPath) == "" {
+		if !d.Git.Release || strings.TrimSpace(d.Git.DarPath) == "" {
 			continue
 		}
 		expBase := *d
-		expBase.DarPath = ""
+		expBase.Git.DarPath = ""
 		expBaseKey, err := damlpackage.GitLockKeyForDep(&expBase)
 		if err != nil || expBaseKey != baseKey {
 			continue
