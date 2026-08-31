@@ -19,7 +19,7 @@ func TestParseGitDependency(t *testing.T) {
 	assert.Equal(t, "https", dep.Git.CloneURL.Scheme)
 	assert.Equal(t, "github.com", dep.Git.CloneURL.Host)
 	assert.Equal(t, "/org/repo.git", dep.Git.CloneURL.Path)
-	assert.Equal(t, "git", dep.Scheme())
+	assert.Equal(t, "git", dep.FullUrl.Scheme)
 }
 
 func TestParseGitDependency_pinnedRef(t *testing.T) {
