@@ -170,7 +170,7 @@ func (p *DamlPackage) parseLocations(rawDeps []*RawDependency, artifactLocations
 				MainPackageId: rawDep.GetMainPackageId(),
 				Index:         i,
 			}
-		} else if IsDarPath(d) {
+		} else if utils.IsDarPath(d) {
 			absPath := utils.ResolvePath(filepath.Dir(p.AbsolutePath), d)
 			u, err := url.Parse("file://" + filepath.ToSlash(absPath))
 			if err != nil {

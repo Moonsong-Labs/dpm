@@ -7,11 +7,6 @@ import (
 	"strings"
 )
 
-// IsDarPath reports whether path ends with .dar (case-insensitive).
-func IsDarPath(path string) bool {
-	return strings.HasSuffix(strings.ToLower(path), ".dar")
-}
-
 // RejectSymlinkOutsideRoot rejects paths that resolve outside root via symlinks.
 func RejectSymlinkOutsideRoot(root, path string) error {
 	resolved, err := filepath.EvalSymlinks(path)

@@ -19,13 +19,6 @@ type Dependency struct {
 	Git     GitSource
 }
 
-func (d *Dependency) Scheme() string {
-	if d == nil || d.FullUrl == nil {
-		return ""
-	}
-	return d.FullUrl.Scheme
-}
-
 // WithGitRef returns a copy pinned to ref, updating the canonical git:// URL.
 func (d *Dependency) WithGitRef(ref string) *Dependency {
 	if d == nil {

@@ -5,6 +5,8 @@ import (
 	"net/url"
 	"path/filepath"
 	"strings"
+
+	"daml.com/x/assistant/pkg/utils"
 )
 
 type gitDependencyModes struct {
@@ -12,18 +14,6 @@ type gitDependencyModes struct {
 	ref     string
 	path    string
 	asset   string
-}
-
-func gitDependencyModesFromStructured(fields *GitStructuredFields) gitDependencyModes {
-	if fields == nil {
-		return gitDependencyModes{}
-	}
-	return gitDependencyModes{
-		release: strings.TrimSpace(fields.Release),
-		ref:     strings.TrimSpace(fields.Ref),
-		path:    strings.TrimSpace(fields.Path),
-		asset:   strings.TrimSpace(fields.Asset),
-	}
 }
 
 func gitDependencyModesFromInline(remainder string) (gitDependencyModes, error) {
@@ -94,17 +84,10 @@ func validateGitRepoDarPath(path string) error {
 	if err := validateRepoRelativeDarPath(path); err != nil {
 		return err
 	}
-	if !isDarPath(path) {
+	if !utils.IsDarPath(path) {
 		return fmt.Errorf("repo-relative path %q must end with .dar", path)
 	}
 	return nil
-}
-
-func validateGitStructuredFields(fields *GitStructuredFields) error {
-	if fields == nil {
-		return fmt.Errorf("missing git fields")
-	}
-	return validateGitDependencyModes(gitDependencyModesFromStructured(fields))
 }
 
 func validateGitInlineDependency(remainder string) error {
@@ -116,7 +99,7 @@ func validateGitInlineDependency(remainder string) error {
 }
 
 func validateGitReleaseAsset(asset string) error {
-	if !isDarPath(asset) {
+	if !utils.IsDarPath(asset) {
 		return fmt.Errorf("git asset %q must end with .dar", asset)
 	}
 	return validateReleaseAssetName(asset)
@@ -130,10 +113,6 @@ func validateReleaseAssetName(asset string) error {
 		return fmt.Errorf("release asset %q is invalid", asset)
 	}
 	return nil
-}
-
-func isDarPath(path string) bool {
-	return strings.HasSuffix(strings.ToLower(path), ".dar")
 }
 
 // JoinRepoRelativeDarPath joins repoRoot and relPath after validateRepoRelativeDarPath.
