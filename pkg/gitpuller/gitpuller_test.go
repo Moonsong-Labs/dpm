@@ -9,6 +9,7 @@ import (
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/damlpackage"
+	"daml.com/x/assistant/pkg/gitparse"
 	"daml.com/x/assistant/pkg/testutil"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -17,10 +18,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func mustGitDep(t *testing.T, raw string) *damlpackage.ParsedDarDependency {
+	t.Helper()
+	d, err := gitparse.ParseGitDependency(raw)
+	require.NoError(t, err)
+	return damlpackage.FromGit(d)
+}
+
 func TestGitDarPuller_releaseWithoutAssetFails(t *testing.T) {
 	raw := "git:github.com/org/repo.git?release=v1.0.0"
-	dep, err := damlpackage.ParseGitDependency(raw)
-	require.NoError(t, err)
+	dep := mustGitDep(t, raw)
 
 	tmpHome := t.TempDir()
 	config, err := assistantconfig.GetWithCustomDamlHome(tmpHome)
@@ -61,8 +68,7 @@ func TestGitDarPuller_rejectsSymlinkOutsideRepo(t *testing.T) {
 
 	cloneURL := "file://" + filepath.ToSlash(repoDir)
 	raw := "git:" + cloneURL + "#main?path=loyalty.dar"
-	dep, err := damlpackage.ParseGitDependency(raw)
-	require.NoError(t, err)
+	dep := mustGitDep(t, raw)
 
 	tmpHome := t.TempDir()
 	config, err := assistantconfig.GetWithCustomDamlHome(tmpHome)
@@ -84,8 +90,7 @@ func TestGitDarPuller_fileRepo(t *testing.T) {
 	cloneURL := testutil.InitGitRepo(t, "loyalty.dar", []byte("fake dar contents"))
 	raw := "git:" + cloneURL + "#main?path=loyalty.dar"
 
-	dep, err := damlpackage.ParseGitDependency(raw)
-	require.NoError(t, err)
+	dep := mustGitDep(t, raw)
 
 	tmpHome := t.TempDir()
 	config, err := assistantconfig.GetWithCustomDamlHome(tmpHome)
@@ -111,8 +116,7 @@ func TestPullGitDar_rejectsEmptySourceBeforeCachingOrPinning(t *testing.T) {
 	t.Setenv("DPM_TEST_ALLOW_FILE_GIT", "true")
 
 	cloneURL := testutil.InitGitRepo(t, "loyalty.dar", nil)
-	dep, err := damlpackage.ParseGitDependency("git:" + cloneURL + "#main?path=loyalty.dar")
-	require.NoError(t, err)
+	dep := mustGitDep(t, "git:"+cloneURL+"#main?path=loyalty.dar")
 
 	config, err := assistantconfig.GetWithCustomDamlHome(t.TempDir())
 	require.NoError(t, err)
@@ -148,7 +152,7 @@ func TestFetchMissingReleaseAssets(t *testing.T) {
 	cloneURL, err := url.Parse("http://" + host + "/org/repo")
 	require.NoError(t, err)
 	dep := &damlpackage.ParsedDarDependency{
-		Git: damlpackage.GitSource{
+		Git: gitparse.GitSource{
 			CloneURL: cloneURL,
 			Ref:      tag,
 			DarPath:  asset,
@@ -174,8 +178,7 @@ func TestDarIsCached(t *testing.T) {
 	t.Setenv("DPM_TEST_ALLOW_FILE_GIT", "true")
 
 	cloneURL := testutil.InitGitRepo(t, "loyalty.dar", []byte("fake dar"))
-	dep, err := damlpackage.ParseGitDependency("git:" + cloneURL + "#main?path=loyalty.dar")
-	require.NoError(t, err)
+	dep := mustGitDep(t, "git:"+cloneURL+"#main?path=loyalty.dar")
 
 	config, err := assistantconfig.GetWithCustomDamlHome(t.TempDir())
 	require.NoError(t, err)
@@ -196,8 +199,7 @@ func TestGitDarPuller_refetchesEmptyPinnedRepoCache(t *testing.T) {
 
 	const darContents = "fake dar contents"
 	cloneURL := testutil.InitGitRepo(t, "loyalty.dar", []byte(darContents))
-	dep, err := damlpackage.ParseGitDependency("git:" + cloneURL + "#main?path=loyalty.dar")
-	require.NoError(t, err)
+	dep := mustGitDep(t, "git:"+cloneURL+"#main?path=loyalty.dar")
 
 	config, err := assistantconfig.GetWithCustomDamlHome(t.TempDir())
 	require.NoError(t, err)
@@ -232,7 +234,7 @@ func TestGitDarPuller_refetchesEmptyReleaseCache(t *testing.T) {
 	cloneURL, err := url.Parse("http://" + host + "/org/repo")
 	require.NoError(t, err)
 	dep := &damlpackage.ParsedDarDependency{
-		Git: damlpackage.GitSource{
+		Git: gitparse.GitSource{
 			CloneURL: cloneURL,
 			Ref:      tag,
 			DarPath:  asset,
@@ -263,8 +265,7 @@ func TestGitDarPuller_skipsFetchWhenPinnedCacheExists(t *testing.T) {
 	cloneURL := testutil.InitGitRepo(t, "loyalty.dar", []byte("fake dar contents"))
 	raw := "git:" + cloneURL + "#main?path=loyalty.dar"
 
-	dep, err := damlpackage.ParseGitDependency(raw)
-	require.NoError(t, err)
+	dep := mustGitDep(t, raw)
 
 	tmpHome := t.TempDir()
 	config, err := assistantconfig.GetWithCustomDamlHome(tmpHome)
@@ -292,8 +293,7 @@ func TestGitDarPuller_reusesExistingClone(t *testing.T) {
 	}
 
 	raw := `git:github.com/gonzamontiel/test-daml-hello.git#master?path=dist/test-daml-hello-0.0.1.dar`
-	dep, err := damlpackage.ParseGitDependency(raw)
-	require.NoError(t, err)
+	dep := mustGitDep(t, raw)
 
 	tmpHome := t.TempDir()
 	config, err := assistantconfig.GetWithCustomDamlHome(tmpHome)

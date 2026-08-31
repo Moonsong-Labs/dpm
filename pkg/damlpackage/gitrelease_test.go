@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"daml.com/x/assistant/pkg/gitparse"
 	"daml.com/x/assistant/pkg/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,8 +33,8 @@ func TestExpandReleaseGitDependenciesRaw(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, expanded, 3)
 	assert.Equal(t, otherLine, mustRawValue(t, expanded[0]))
-	assert.Equal(t, FormatGitReleaseLine("github.com/org/repo", tag, assetA), mustRawValue(t, expanded[1]))
-	assert.Equal(t, FormatGitReleaseLine("github.com/org/repo", tag, assetB), mustRawValue(t, expanded[2]))
+	assert.Equal(t, gitparse.FormatGitReleaseLine("github.com/org/repo", tag, assetA), mustRawValue(t, expanded[1]))
+	assert.Equal(t, gitparse.FormatGitReleaseLine("github.com/org/repo", tag, assetB), mustRawValue(t, expanded[2]))
 }
 
 func TestExpandGitReleaseDependenciesInYaml(t *testing.T) {
@@ -63,7 +64,7 @@ dependencies:
 	require.Len(t, got.Dependencies, 2)
 	line, err := got.Dependencies[1].Value()
 	require.NoError(t, err)
-	assert.Equal(t, FormatGitReleaseLine("github.com/org/repo", tag, asset), line)
+	assert.Equal(t, gitparse.FormatGitReleaseLine("github.com/org/repo", tag, asset), line)
 }
 
 func TestExpandGitReleaseDependenciesInYaml_alias(t *testing.T) {
@@ -99,7 +100,7 @@ dependencies:
 	require.Len(t, got.Dependencies, 1)
 	line, err := got.Dependencies[0].Value()
 	require.NoError(t, err)
-	assert.Equal(t, FormatGitReleaseLine("github.com/org/repo", tag, asset), line)
+	assert.Equal(t, gitparse.FormatGitReleaseLine("github.com/org/repo", tag, asset), line)
 }
 
 func TestCanonicalizeGitDependenciesInYaml_afterExpandUsesFreshDeps(t *testing.T) {
@@ -182,7 +183,7 @@ data-dependencies:
 	assert.Equal(t, pkgID, got.DataDependencies[0].WithPackageId.MainPackageId)
 	line, err := got.DataDependencies[0].Value()
 	require.NoError(t, err)
-	assert.Equal(t, FormatGitReleaseLine("github.com/org/repo", tag, asset), line)
+	assert.Equal(t, gitparse.FormatGitReleaseLine("github.com/org/repo", tag, asset), line)
 }
 
 func TestCanonicalizeRawGitDependencies_preservesMainPackageId(t *testing.T) {
@@ -215,7 +216,7 @@ func TestExpandGitReleaseDependenciesInYaml_doesNotDuplicateExistingAssets(t *te
 
 	yamlPath := t.TempDir() + "/daml.yaml"
 	baseLine := "git:github.com/org/repo.git?release=" + tag
-	assetLine := FormatGitReleaseLine("github.com/org/repo.git", tag, assetA)
+	assetLine := gitparse.FormatGitReleaseLine("github.com/org/repo.git", tag, assetA)
 	contents := []byte(`data-dependencies:
   - ` + assetLine + `
   - ` + baseLine + `

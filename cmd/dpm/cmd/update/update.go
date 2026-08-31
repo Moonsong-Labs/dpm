@@ -12,6 +12,7 @@ import (
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
 	"daml.com/x/assistant/pkg/builtincommand"
 	"daml.com/x/assistant/pkg/damlpackage"
+	"daml.com/x/assistant/pkg/gitparse"
 	"daml.com/x/assistant/pkg/gitpuller"
 	"daml.com/x/assistant/pkg/multipackage"
 	"daml.com/x/assistant/pkg/ocilister"
@@ -207,9 +208,9 @@ func (c *updateCmd) updateGitDar(ctx context.Context, dep *damlpackage.ParsedDar
 		return nil
 	}
 
-	uri := damlpackage.FormatGitYamlLine(dep)
+	uri := gitparse.FormatGitYamlLine(dep.Git)
 
-	if damlpackage.GitRefIsMutable(dep.Git.Ref) {
+	if gitparse.GitRefIsMutable(dep.Git.Ref) {
 		fmt.Printf("Updating git dar %q...\n", uri)
 
 		target := yamlTarget.Copy()
@@ -269,34 +270,34 @@ func checkGitDependency(ctx context.Context, config *assistantconfig.Config, dep
 		if !gitpuller.DarIsCached(config, dep) {
 			return fmt.Errorf(
 				"git release dependency %q is not installed; run 'dpm update'",
-				damlpackage.FormatGitYamlLine(dep),
+				gitparse.FormatGitYamlLine(dep.Git),
 			)
 		}
 		return nil
 	}
 
-	if damlpackage.GitRefIsMutable(dep.Git.Ref) {
-		return damlpackage.GitMissingPinError(dep)
+	if gitparse.GitRefIsMutable(dep.Git.Ref) {
+		return gitparse.GitMissingPinError(dep.Git)
 	}
 
 	if !gitpuller.DarIsCached(config, dep) {
 		return fmt.Errorf(
 			"git dependency %q is not installed; run 'dpm install package' or 'dpm update'",
-			damlpackage.FormatGitYamlLine(dep),
+			gitparse.FormatGitYamlLine(dep.Git),
 		)
 	}
 
 	result, err := gitpuller.PullGitDar(ctx, config, dep)
 	if err != nil {
-		return fmt.Errorf("git dependency %q: %w", damlpackage.FormatGitYamlLine(dep), err)
+		return fmt.Errorf("git dependency %q: %w", gitparse.FormatGitYamlLine(dep.Git), err)
 	}
 
 	cachedDar, err := config.CachePathForGitDependency(dep.Git.CloneURL, dep.Git.DarPath, dep.Git.Ref)
 	if err != nil {
-		return fmt.Errorf("git dependency %q: %w", damlpackage.FormatGitYamlLine(dep), err)
+		return fmt.Errorf("git dependency %q: %w", gitparse.FormatGitYamlLine(dep.Git), err)
 	}
 	if result.Pulled.DarFilePath != cachedDar {
-		return fmt.Errorf("git dependency %q cache path mismatch", damlpackage.FormatGitYamlLine(dep))
+		return fmt.Errorf("git dependency %q cache path mismatch", gitparse.FormatGitYamlLine(dep.Git))
 	}
 
 	return nil

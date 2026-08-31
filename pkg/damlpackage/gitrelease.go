@@ -4,70 +4,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"net/url"
 	"os"
 	"strings"
 
 	"daml.com/x/assistant/pkg/githubrelease"
+	"daml.com/x/assistant/pkg/gitparse"
 	"daml.com/x/assistant/pkg/yamledit"
 	"github.com/goccy/go-yaml"
 )
-
-// DescribeGitFetch returns a short human-readable summary for progress output.
-func DescribeGitFetch(dep *ParsedDarDependency) string {
-	if dep == nil || dep.Git.CloneURL == nil {
-		return "git dependency"
-	}
-	if dep.Git.Release {
-		return fmt.Sprintf("%s release %q asset %q", dep.Git.CloneURL.String(), dep.Git.Ref, dep.Git.DarPath)
-	}
-	return fmt.Sprintf("%s @ %q path %q", dep.Git.CloneURL.String(), dep.Git.Ref, dep.Git.DarPath)
-}
-
-// FormatGitReleaseLine builds git:...?release=TAG&asset=NAME (asset may be empty).
-func FormatGitReleaseLine(cloneURL, releaseTag, asset string) string {
-	u, err := url.Parse(cloneURL)
-	if err != nil {
-		return "git:" + cloneURL
-	}
-	q := u.Query()
-	q.Set("release", releaseTag)
-	if strings.TrimSpace(asset) != "" {
-		q.Set("asset", asset)
-	} else {
-		q.Del("asset")
-	}
-	u.RawQuery = q.Encode()
-	return "git:" + u.String()
-}
-
-// FormatGitStructuredLine builds a git: URI from structured YAML fields.
-func FormatGitStructuredLine(fields *GitStructuredFields) (string, error) {
-	if err := validateGitStructuredFields(fields); err != nil {
-		return "", err
-	}
-	if fields.URL == "" {
-		return "", fmt.Errorf("git dependency: url is required")
-	}
-	if fields.Release != "" {
-		return FormatGitReleaseLine(fields.URL, fields.Release, fields.Asset), nil
-	}
-	if fields.Ref == "" {
-		return "", fmt.Errorf("git dependency: ref or release is required")
-	}
-	if fields.Path == "" {
-		return "", fmt.Errorf("git dependency: path is required for repo-file dependencies")
-	}
-	return fmt.Sprintf("git:%s#%s?path=%s", fields.URL, fields.Ref, escapeGitDarPathQuery(fields.Path)), nil
-}
-
-// FormatGitReleaseBaseLine returns the git release dependency line without an asset.
-func FormatGitReleaseBaseLine(dep *ParsedDarDependency) string {
-	if dep == nil || dep.Git.CloneURL == nil {
-		return ""
-	}
-	return FormatGitReleaseLine(gitDependencyCloneURLString(dep.Git.CloneURL), dep.Git.Ref, "")
-}
 
 // ExpandGitReleaseDependenciesInYaml expands release entries without assets in a daml.yaml field.
 func ExpandGitReleaseDependenciesInYaml(ctx context.Context, yamlPath, fieldName string, rawDeps []*RawDependency) (bool, error) {
@@ -79,7 +23,7 @@ func ExpandGitReleaseDependenciesInYaml(ctx context.Context, yamlPath, fieldName
 		if dep == nil || !dep.Git.Release || strings.TrimSpace(dep.Git.DarPath) != "" {
 			return "", false
 		}
-		return FormatGitReleaseBaseLine(dep), true
+		return gitparse.FormatGitReleaseBaseLine(dep.Git), true
 	})
 	if err != nil {
 		return false, err
@@ -102,7 +46,7 @@ func CanonicalizeGitDependenciesInYaml(yamlPath, fieldName string, rawDeps []*Ra
 		if dep == nil || dep.Scheme() != "git" {
 			return "", false
 		}
-		return FormatGitYamlLine(dep), true
+		return gitparse.FormatGitYamlLine(dep.Git), true
 	})
 	if err != nil {
 		return false, err
@@ -130,17 +74,17 @@ func expandReleaseGitDependenciesRaw(ctx context.Context, rawDeps []*RawDependen
 		if err != nil {
 			return nil, nil, err
 		}
-		if !IsGitDependencyLine(line) {
+		if !gitparse.IsGitDependencyLine(line) {
 			continue
 		}
-		dep, err := ParseGitDependency(line)
+		dep, err := gitparse.ParseGitDependency(line)
 		if err != nil {
 			return nil, nil, err
 		}
 		if !dep.Git.Release || strings.TrimSpace(dep.Git.DarPath) == "" {
 			continue
 		}
-		key, err := GitLockKeyForDep(dep)
+		key, err := gitparse.GitLockKeyForDep(dep.Git)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -154,12 +98,12 @@ func expandReleaseGitDependenciesRaw(ctx context.Context, rawDeps []*RawDependen
 		if err != nil {
 			return nil, nil, err
 		}
-		if !IsGitDependencyLine(line) {
+		if !gitparse.IsGitDependencyLine(line) {
 			out = append(out, rawDep)
 			sourceIndices = append(sourceIndices, sourceIndex)
 			continue
 		}
-		dep, err := ParseGitDependency(line)
+		dep, err := gitparse.ParseGitDependency(line)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -185,7 +129,7 @@ func expandReleaseGitDependenciesRaw(ctx context.Context, rawDeps []*RawDependen
 		for _, asset := range assets {
 			assetDep := *dep
 			assetDep.Git.DarPath = asset
-			key, err := GitLockKeyForDep(&assetDep)
+			key, err := gitparse.GitLockKeyForDep(assetDep.Git)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -194,7 +138,7 @@ func expandReleaseGitDependenciesRaw(ctx context.Context, rawDeps []*RawDependen
 			}
 			existingAssets[key] = struct{}{}
 
-			expandedLine := FormatGitReleaseLine(gitDependencyCloneURLString(dep.Git.CloneURL), dep.Git.Ref, asset)
+			expandedLine := gitparse.FormatGitYamlLine(assetDep.Git)
 			expanded, err := rawDependencyWithValue(rawDep, expandedLine)
 			if err != nil {
 				return nil, nil, err
@@ -298,14 +242,14 @@ func CanonicalizeRawGitDependencies(rawDeps []*RawDependency) ([]*RawDependency,
 func canonicalizeRawGitDependency(raw *RawDependency) (*RawDependency, bool, error) {
 	switch {
 	case raw.GitStructured != nil:
-		line, err := FormatGitStructuredLine(raw.GitStructured)
+		line, err := gitparse.FormatGitStructuredLine(raw.GitStructured)
 		if err != nil {
 			return nil, false, err
 		}
-		if !IsGitDependencyLine(line) {
+		if !gitparse.IsGitDependencyLine(line) {
 			return raw, false, nil
 		}
-		canonical, err := CoerceGitDependencyInput(line, GitInputOptions{RequireGitPrefix: true})
+		canonical, err := gitparse.CoerceGitDependencyInput(line, gitparse.GitInputOptions{RequireGitPrefix: true})
 		if err != nil {
 			return nil, false, err
 		}
@@ -331,10 +275,10 @@ func canonicalizeRawGitDependency(raw *RawDependency) (*RawDependency, bool, err
 }
 
 func canonicalizeGitLineValue(line string) (string, bool, error) {
-	if !IsGitDependencyLine(line) {
+	if !gitparse.IsGitDependencyLine(line) {
 		return line, false, nil
 	}
-	canonical, err := CoerceGitDependencyInput(line, GitInputOptions{RequireGitPrefix: true})
+	canonical, err := gitparse.CoerceGitDependencyInput(line, gitparse.GitInputOptions{RequireGitPrefix: true})
 	if err != nil {
 		return "", false, err
 	}

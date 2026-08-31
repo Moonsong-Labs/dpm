@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"daml.com/x/assistant/pkg/damlpackage"
+	"daml.com/x/assistant/pkg/gitparse"
 	"daml.com/x/assistant/pkg/gitpuller"
 )
 
@@ -17,21 +18,21 @@ func gitPinsFromExistingLock(lockfilePath string) map[string]string {
 		if d.URI == nil || d.URI.Scheme != "git" {
 			continue
 		}
-		ref := damlpackage.GitRefFromURI(d.URI)
-		if damlpackage.GitRefIsMutable(ref) {
+		ref := gitparse.GitRefFromURI(d.URI)
+		if gitparse.GitRefIsMutable(ref) {
 			continue
 		}
-		pins[damlpackage.GitLockKey(d.URI)] = ref
+		pins[gitparse.GitLockKey(d.URI)] = ref
 	}
 	return pins
 }
 
 func gitDependencyForUpdate(dep *damlpackage.ParsedDarDependency, existingPins map[string]string) *damlpackage.ParsedDarDependency {
-	if dep == nil || dep.FullUrl == nil || !damlpackage.GitRefIsMutable(dep.Git.Ref) {
+	if dep == nil || dep.FullUrl == nil || !gitparse.GitRefIsMutable(dep.Git.Ref) {
 		return dep
 	}
-	pinned, ok := existingPins[damlpackage.GitLockKey(dep.FullUrl)]
-	if !ok || damlpackage.GitRefIsMutable(pinned) {
+	pinned, ok := existingPins[gitparse.GitLockKey(dep.FullUrl)]
+	if !ok || gitparse.GitRefIsMutable(pinned) {
 		return dep
 	}
 	return dep.WithGitRef(pinned)
@@ -45,7 +46,7 @@ func (l *Locker) resolveGitDar(ctx context.Context, d *Dar, existingPins map[str
 	}
 	d.Digest = pulled.Digest
 	d.Path = pulled.DarFilePath
-	pinned, err := damlpackage.PinnedGitURI(dep, pulled.ResolvedRef)
+	pinned, err := gitparse.PinnedGitURI(dep.FullUrl, dep.Git, pulled.ResolvedRef)
 	if err != nil {
 		return err
 	}

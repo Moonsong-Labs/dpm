@@ -1,4 +1,4 @@
-package damlpackage
+package gitparse
 
 import (
 	"fmt"
@@ -7,7 +7,6 @@ import (
 	"strings"
 )
 
-// gitDependencyModes holds release vs repo-file fields for a git dependency.
 type gitDependencyModes struct {
 	release string
 	ref     string
@@ -95,7 +94,7 @@ func validateGitRepoDarPath(path string) error {
 	if err := validateRepoRelativeDarPath(path); err != nil {
 		return err
 	}
-	if !IsDarPath(path) {
+	if !isDarPath(path) {
 		return fmt.Errorf("repo-relative path %q must end with .dar", path)
 	}
 	return nil
@@ -117,7 +116,7 @@ func validateGitInlineDependency(remainder string) error {
 }
 
 func validateGitReleaseAsset(asset string) error {
-	if !IsDarPath(asset) {
+	if !isDarPath(asset) {
 		return fmt.Errorf("git asset %q must end with .dar", asset)
 	}
 	return validateReleaseAssetName(asset)
@@ -131,6 +130,10 @@ func validateReleaseAssetName(asset string) error {
 		return fmt.Errorf("release asset %q is invalid", asset)
 	}
 	return nil
+}
+
+func isDarPath(path string) bool {
+	return strings.HasSuffix(strings.ToLower(path), ".dar")
 }
 
 // JoinRepoRelativeDarPath joins repoRoot and relPath after validateRepoRelativeDarPath.

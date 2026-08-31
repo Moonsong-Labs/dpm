@@ -1,4 +1,4 @@
-package damlpackage
+package gitparse
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ const (
 )
 
 // ParseGitDependency parses a daml.yaml git dependency (repo file or GitHub release asset).
-func ParseGitDependency(raw string) (*ParsedDarDependency, error) {
+func ParseGitDependency(raw string) (*Dependency, error) {
 	remainder := strings.TrimPrefix(raw, "git:")
 	if remainder == raw {
 		return nil, fmt.Errorf("dependency %q is not a git dependency", raw)
@@ -33,7 +33,7 @@ func ParseGitDependency(raw string) (*ParsedDarDependency, error) {
 	return parseGitRepoDependency(remainder, raw)
 }
 
-func parseGitReleaseDependency(remainder, raw string) (*ParsedDarDependency, error) {
+func parseGitReleaseDependency(remainder, raw string) (*Dependency, error) {
 	u, err := url.Parse(remainder)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't parse git release dependency url %q: %w", raw, err)
@@ -64,9 +64,8 @@ func parseGitReleaseDependency(remainder, raw string) (*ParsedDarDependency, err
 		return nil, fmt.Errorf("couldn't build canonical git release url for dependency %q: %w", raw, err)
 	}
 
-	return &ParsedDarDependency{
-		FullUrl:  canonical,
-		Location: nil,
+	return &Dependency{
+		FullUrl: canonical,
 		Git: GitSource{
 			Ref:      releaseTag,
 			DarPath:  asset,
@@ -76,7 +75,7 @@ func parseGitReleaseDependency(remainder, raw string) (*ParsedDarDependency, err
 	}, nil
 }
 
-func parseGitRepoDependency(remainder, raw string) (*ParsedDarDependency, error) {
+func parseGitRepoDependency(remainder, raw string) (*Dependency, error) {
 	basePart, afterHash, ok := strings.Cut(remainder, "#")
 	if !ok {
 		return nil, fmt.Errorf("git dependency %q: ref is required after # (e.g. #main, #v1.0.0, or a commit SHA)", raw)
@@ -123,9 +122,8 @@ func parseGitRepoDependency(remainder, raw string) (*ParsedDarDependency, error)
 		return nil, fmt.Errorf("couldn't build canonical git url for dependency %q: %w", raw, err)
 	}
 
-	return &ParsedDarDependency{
-		FullUrl:  canonical,
-		Location: nil,
+	return &Dependency{
+		FullUrl: canonical,
 		Git: GitSource{
 			Ref:      gitRef,
 			DarPath:  darPath,
@@ -166,7 +164,6 @@ func cloneURLFromHTTPS(u *url.URL, raw string) (*url.URL, string, string, error)
 	return cloneURL, host, repoPath, nil
 }
 
-// normaliseGitCloneURL turns schemeless shorthand into an HTTPS clone URL.
 func normaliseGitCloneURL(u *url.URL, raw string) (*url.URL, error) {
 	if u.Scheme == "" && u.Host == "" {
 		normalised, err := url.Parse("https://" + u.String())
@@ -184,52 +181,6 @@ func normaliseGitCloneURL(u *url.URL, raw string) (*url.URL, error) {
 		}
 	}
 	return u, nil
-}
-
-var gitDarPathQueryEscaper = strings.NewReplacer("%", "%25", "+", "%2B")
-
-func escapeGitDarPathQuery(darPath string) string {
-	return gitDarPathQueryEscaper.Replace(darPath)
-}
-
-// gitDependencyCloneURLString returns the clone URL form used in daml.yaml.
-func gitDependencyCloneURLString(u *url.URL) string {
-	if u == nil {
-		return ""
-	}
-	if u.Scheme == "https" {
-		return u.Host + strings.TrimSuffix(u.EscapedPath(), ".git")
-	}
-	return u.String()
-}
-
-// FormatGitYamlLine builds the canonical daml.yaml git dependency string.
-func FormatGitYamlLine(dep *ParsedDarDependency) string {
-	if dep == nil || dep.Git.CloneURL == nil {
-		return ""
-	}
-	cloneURL := gitDependencyCloneURLString(dep.Git.CloneURL)
-	if dep.Git.Release {
-		return FormatGitReleaseLine(cloneURL, dep.Git.Ref, dep.Git.DarPath)
-	}
-	return fmt.Sprintf("git:%s#%s?path=%s", cloneURL, dep.Git.Ref, escapeGitDarPathQuery(dep.Git.DarPath))
-}
-
-// PinnedGitURI returns a lockfile URI with the resolved ref (commit SHA for repo deps, release tag for release deps).
-func PinnedGitURI(dep *ParsedDarDependency, resolvedRef string) (*url.URL, error) {
-	if dep == nil || dep.FullUrl == nil || dep.FullUrl.Scheme != "git" {
-		return nil, fmt.Errorf("not a git dependency")
-	}
-	if dep.Git.Release {
-		return url.Parse(dep.FullUrl.String())
-	}
-	repoPath := gitRepoPathFromURI(dep.FullUrl)
-	return url.Parse(fmt.Sprintf("git://%s/%s@%s?path=%s",
-		dep.FullUrl.Host,
-		repoPath,
-		url.PathEscape(resolvedRef),
-		url.QueryEscape(dep.Git.DarPath),
-	))
 }
 
 func gitRepoPathFromURI(u *url.URL) string {
@@ -254,25 +205,21 @@ func GitRefFromURI(u *url.URL) string {
 	return ref
 }
 
-func (d *ParsedDarDependency) WithGitRef(ref string) *ParsedDarDependency {
-	if d == nil {
-		return nil
+// PinnedGitURI returns a lockfile URI with the resolved ref (commit SHA for repo deps, release tag for release deps).
+func PinnedGitURI(fullURL *url.URL, git GitSource, resolvedRef string) (*url.URL, error) {
+	if fullURL == nil || fullURL.Scheme != "git" {
+		return nil, fmt.Errorf("not a git dependency")
 	}
-	copy := *d
-	copy.Git.Ref = ref
-	if copy.FullUrl != nil && copy.FullUrl.Scheme == "git" && !copy.Git.Release {
-		repoPath := gitRepoPathFromURI(copy.FullUrl)
-		pinned, err := url.Parse(fmt.Sprintf("git://%s/%s@%s?path=%s",
-			copy.FullUrl.Host,
-			repoPath,
-			url.PathEscape(ref),
-			url.QueryEscape(copy.Git.DarPath),
-		))
-		if err == nil {
-			copy.FullUrl = pinned
-		}
+	if git.Release {
+		return url.Parse(fullURL.String())
 	}
-	return &copy
+	repoPath := gitRepoPathFromURI(fullURL)
+	return url.Parse(fmt.Sprintf("git://%s/%s@%s?path=%s",
+		fullURL.Host,
+		repoPath,
+		url.PathEscape(resolvedRef),
+		url.QueryEscape(git.DarPath),
+	))
 }
 
 // GitRefIsMutable reports whether a ref may move (branch or tag name vs commit SHA).
@@ -281,20 +228,20 @@ func GitRefIsMutable(ref string) bool {
 }
 
 // GitPinMismatchError reports a pinned ref that no longer matches the resolved commit.
-func GitPinMismatchError(dep *ParsedDarDependency, resolved string) error {
+func GitPinMismatchError(git GitSource, resolved string) error {
 	return fmt.Errorf(
 		"git dependency %q is pinned to commit %q but resolved %q; run 'dpm update'",
-		FormatGitYamlLine(dep),
-		dep.Git.Ref,
+		FormatGitYamlLine(git),
+		git.Ref,
 		resolved,
 	)
 }
 
 // GitMissingPinError reports a mutable git ref that must be pinned.
-func GitMissingPinError(dep *ParsedDarDependency) error {
+func GitMissingPinError(git GitSource) error {
 	return fmt.Errorf(
 		"git dependency %q has no commit pin; run 'dpm install package' or 'dpm update'",
-		FormatGitYamlLine(dep),
+		FormatGitYamlLine(git),
 	)
 }
 
@@ -319,7 +266,6 @@ func GitLockKey(u *url.URL) string {
 	return fmt.Sprintf("git://%s/%s?path=%s", u.Host, gitRepoPathFromURI(u), u.Query().Get("path"))
 }
 
-// cloneURLIdentity returns a stable host/repo identity for a clone URL, ignoring .git suffixes.
 func cloneURLIdentity(cloneURL *url.URL) string {
 	if cloneURL == nil {
 		return "unknown/unknown"
@@ -343,16 +289,13 @@ func cloneURLIdentity(cloneURL *url.URL) string {
 }
 
 // GitLockKeyForDep returns a stable key for matching git deps declared in daml.yaml.
-func GitLockKeyForDep(dep *ParsedDarDependency) (string, error) {
-	if dep == nil {
-		return "", fmt.Errorf("nil git dependency")
-	}
-	if dep.Git.CloneURL == nil {
+func GitLockKeyForDep(git GitSource) (string, error) {
+	if git.CloneURL == nil {
 		return "", fmt.Errorf("git dependency missing clone URL")
 	}
-	identity := cloneURLIdentity(dep.Git.CloneURL)
-	if dep.Git.Release {
-		return fmt.Sprintf("git-release:%s:%s:%s", identity, dep.Git.Ref, dep.Git.DarPath), nil
+	identity := cloneURLIdentity(git.CloneURL)
+	if git.Release {
+		return fmt.Sprintf("git-release:%s:%s:%s", identity, git.Ref, git.DarPath), nil
 	}
-	return fmt.Sprintf("git:%s:%s", identity, dep.Git.DarPath), nil
+	return fmt.Sprintf("git:%s:%s", identity, git.DarPath), nil
 }

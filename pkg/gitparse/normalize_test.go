@@ -1,4 +1,4 @@
-package damlpackage
+package gitparse
 
 import (
 	"testing"
@@ -7,36 +7,95 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGitDependencyHostsAgreeAcrossLayers(t *testing.T) {
+func TestCoerceGitDependencyInput_githubBlobURLs(t *testing.T) {
 	t.Parallel()
 
-	lines := []string{
-		"git:gitlab.com/calvogenerico/daml-temp-coso#3000cf452734676e9c87d0a92d1bad38a3f16ec3?path=foo.dar",
-		"git:github.com/org/repo#main?path=dist/foo.dar",
-		"git:bitbucket.org/org/repo#main?path=foo.dar",
-		"git:git.internal.example.com/team/repo#v1.2.3?path=out/foo.dar",
-		"git:https://gitlab.example.com/group/subgroup/repo.git#main?path=foo.dar",
+	const want = "git:github.com/gonzamontiel/test-daml-hello#master?path=dist/test-daml-hello-0.0.1.dar"
+
+	cases := []struct {
+		name string
+		raw  string
+		opts GitInputOptions
+	}{
+		{
+			name: "https blob without git prefix",
+			raw:  "https://github.com/gonzamontiel/test-daml-hello/blob/master/dist/test-daml-hello-0.0.1.dar",
+			opts: GitInputOptions{RequireGitPrefix: false},
+		},
+		{
+			name: "https blob with git prefix",
+			raw:  "git:https://github.com/gonzamontiel/test-daml-hello/blob/master/dist/test-daml-hello-0.0.1.dar",
+			opts: GitInputOptions{RequireGitPrefix: true},
+		},
+		{
+			name: "host-first blob without git prefix",
+			raw:  "github.com/gonzamontiel/test-daml-hello/blob/master/dist/test-daml-hello-0.0.1.dar",
+			opts: GitInputOptions{RequireGitPrefix: false},
+		},
+		{
+			name: "host-first blob with git prefix",
+			raw:  "git:github.com/gonzamontiel/test-daml-hello/blob/master/dist/test-daml-hello-0.0.1.dar",
+			opts: GitInputOptions{RequireGitPrefix: true},
+		},
 	}
 
-	for _, line := range lines {
-		t.Run(line, func(t *testing.T) {
-			_, parseErr := ParseGitDependency(line)
-			require.NoError(t, parseErr, "ParseGitDependency should accept any https host")
-
-			_, _, coerceErr := CanonicalizeRawGitDependencies([]*RawDependency{rawDependencyFromValue(line)})
-			require.NoError(t, coerceErr, "canonicalization must accept whatever parsing accepts")
-
-			normalized, isGit, err := NormalizeDarDependencyURI(line)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := CoerceGitDependencyInput(tc.raw, tc.opts)
 			require.NoError(t, err)
-			assert.True(t, isGit)
+			assert.Equal(t, want, got)
+		})
+	}
+}
 
-			again, changed, err := CanonicalizeRawGitDependencies([]*RawDependency{rawDependencyFromValue(normalized)})
+func TestNormalizeDarDependencyURI_githubBlobWithoutGitPrefix(t *testing.T) {
+	t.Parallel()
+
+	raw := "https://github.com/gonzamontiel/test-daml-hello/blob/master/dist/test-daml-hello-0.0.1.dar"
+	normalized, isGit, err := NormalizeDarDependencyURI(raw)
+	require.NoError(t, err)
+	assert.True(t, isGit)
+	assert.Equal(t, "git:github.com/gonzamontiel/test-daml-hello#master?path=dist/test-daml-hello-0.0.1.dar", normalized)
+}
+
+func TestCoerceGitDependencyInput_githubRawURLs(t *testing.T) {
+	t.Parallel()
+
+	const wantMain = "git:github.com/canton-network/splice#main?path=daml/dars/splice-amulet-0.1.19.dar"
+	const wantTag = "git:github.com/canton-network/splice#0.6.10?path=daml/dars/splice-amulet-0.1.19.dar"
+
+	cases := []struct {
+		name string
+		raw  string
+		want string
+	}{
+		{
+			name: "raw refs/heads",
+			raw:  "https://github.com/canton-network/splice/raw/refs/heads/main/daml/dars/splice-amulet-0.1.19.dar",
+			want: wantMain,
+		},
+		{
+			name: "raw refs/tags",
+			raw:  "https://github.com/canton-network/splice/raw/refs/tags/0.6.10/daml/dars/splice-amulet-0.1.19.dar",
+			want: wantTag,
+		},
+		{
+			name: "raw single-segment ref",
+			raw:  "https://github.com/canton-network/splice/raw/main/daml/dars/splice-amulet-0.1.19.dar",
+			want: wantMain,
+		},
+		{
+			name: "host-first raw refs/heads",
+			raw:  "github.com/canton-network/splice/raw/refs/heads/main/daml/dars/splice-amulet-0.1.19.dar",
+			want: wantMain,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := CoerceGitDependencyInput(tc.raw, GitInputOptions{RequireGitPrefix: false})
 			require.NoError(t, err)
-			assert.False(t, changed)
-			require.Len(t, again, 1)
-			againLine, err := again[0].Value()
-			require.NoError(t, err)
-			assert.Equal(t, normalized, againLine)
+			assert.Equal(t, tc.want, got)
 		})
 	}
 }
@@ -132,17 +191,10 @@ func TestNormalizeDarDependencyURI_leavesNonGitInputsAlone(t *testing.T) {
 	}
 }
 
-func TestParseGitDependency_gitLabReleaseIsRejectedWithGuidance(t *testing.T) {
+func TestParseGitDependency_gitLabReleaseParses(t *testing.T) {
 	t.Parallel()
 
 	dep, err := ParseGitDependency("git:gitlab.com/org/repo?release=v1.0.0&asset=foo.dar")
 	require.NoError(t, err)
 	assert.True(t, dep.Git.Release)
-
-	_, err = ExpandReleaseGitDependenciesRaw(t.Context(), []*RawDependency{
-		rawDependencyFromValue("git:gitlab.com/org/repo?release=v1.0.0"),
-	})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "only supported for github.com")
-	assert.Contains(t, err.Error(), "?path=")
 }

@@ -7,6 +7,7 @@ import (
 
 	"daml.com/x/assistant/cmd/dpm/cmd/resolve/resolutionerrors"
 	"daml.com/x/assistant/pkg/damlpackage"
+	"daml.com/x/assistant/pkg/gitparse"
 )
 
 func isDarNotInstalled(err error) bool {
@@ -70,7 +71,7 @@ func formatMissingDarsError(missing []*damlpackage.ParsedDarDependency) error {
 
 func missingDarLabel(dep *damlpackage.ParsedDarDependency) string {
 	if dep != nil && dep.Scheme() == "git" {
-		return damlpackage.FormatGitYamlLine(dep)
+		return gitparse.FormatGitYamlLine(dep.Git)
 	}
 	if dep != nil && dep.FullUrl != nil {
 		return dep.FullUrl.String()
@@ -79,5 +80,5 @@ func missingDarLabel(dep *damlpackage.ParsedDarDependency) string {
 }
 
 func gitReleaseBaseLine(dep *damlpackage.ParsedDarDependency) string {
-	return damlpackage.FormatGitReleaseBaseLine(dep)
+	return gitparse.FormatGitReleaseBaseLine(dep.Git)
 }

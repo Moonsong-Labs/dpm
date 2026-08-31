@@ -14,6 +14,7 @@ import (
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
 	"daml.com/x/assistant/pkg/damlpackage"
 	"daml.com/x/assistant/pkg/darmanifest"
+	"daml.com/x/assistant/pkg/gitparse"
 	"daml.com/x/assistant/pkg/ocilister"
 	"daml.com/x/assistant/pkg/resolution"
 	"daml.com/x/assistant/pkg/testutil"
@@ -262,7 +263,7 @@ dependencies:
 		value, err := pkg.Dependencies[0].Value()
 		require.NoError(t, err)
 		dep := lo.Values(pkg.ParsedDarDependencies.Dependencies)[0]
-		assert.False(t, damlpackage.GitRefIsMutable(dep.Git.Ref), "expected commit SHA pin in yaml ref")
+		assert.False(t, gitparse.GitRefIsMutable(dep.Git.Ref), "expected commit SHA pin in yaml ref")
 		assert.NotEqual(t, "main", dep.Git.Ref)
 		assert.Contains(t, value, dep.Git.Ref)
 	})
@@ -326,7 +327,7 @@ dependencies:
 
 	require.NoError(t, createStdTestRootCmd(t, "install", "package").Execute())
 
-	secondCached, err := damlpackage.ParseGitDependency(secondDep)
+	secondCached, err := gitparse.ParseGitDependency(secondDep)
 	require.NoError(t, err)
 	secondCachedPath, err := config.CachePathForGitDependency(secondCached.Git.CloneURL, secondCached.Git.DarPath, secondCommit.String())
 	require.NoError(t, err)
@@ -342,7 +343,7 @@ dependencies:
 `, firstDep))
 	require.NoError(t, createStdTestRootCmd(t, "install", "package").Execute())
 
-	firstCached, err := damlpackage.ParseGitDependency(firstDep)
+	firstCached, err := gitparse.ParseGitDependency(firstDep)
 	require.NoError(t, err)
 	firstCachedPath, err := config.CachePathForGitDependency(firstCached.Git.CloneURL, firstCached.Git.DarPath, firstCommit)
 	require.NoError(t, err)
@@ -381,7 +382,7 @@ data-dependencies:
 	pkg, err := damlpackage.Read(filepath.Join(projectDir, "daml.yaml"))
 	require.NoError(t, err)
 	dep := lo.Values(pkg.ParsedDarDependencies.DataDependencies)[0]
-	assert.False(t, damlpackage.GitRefIsMutable(dep.Git.Ref))
+	assert.False(t, gitparse.GitRefIsMutable(dep.Git.Ref))
 	require.NotNil(t, pkg.DataDependencies[0].GetMainPackageId())
 	assert.Equal(t, packageID, *pkg.DataDependencies[0].GetMainPackageId())
 
@@ -445,7 +446,7 @@ artifact-locations:
 		assert.NotContains(t, value, "#main?")
 		dep := pkg.ParsedDarDependencies.Dependencies[value]
 		require.NotNil(t, dep)
-		assert.False(t, damlpackage.GitRefIsMutable(dep.Git.Ref))
+		assert.False(t, gitparse.GitRefIsMutable(dep.Git.Ref))
 		assert.Contains(t, []string{"packages/foo.dar", "packages/bar.dar"}, dep.Git.DarPath)
 
 		cached, err := config.CachePathForGitDependency(dep.Git.CloneURL, dep.Git.DarPath, dep.Git.Ref)

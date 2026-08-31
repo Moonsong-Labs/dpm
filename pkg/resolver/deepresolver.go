@@ -17,6 +17,7 @@ import (
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/damlpackage"
 	"daml.com/x/assistant/pkg/darmanifest"
+	"daml.com/x/assistant/pkg/gitparse"
 	"daml.com/x/assistant/pkg/gitpuller"
 	"daml.com/x/assistant/pkg/multipackage"
 	"daml.com/x/assistant/pkg/packagelock"
@@ -258,16 +259,16 @@ func (d *DeepResolver) resolveDar(dar *damlpackage.ParsedDarDependency) ([]strin
 			}
 			return []string{absPath}, nil
 		}
-		if damlpackage.GitRefIsMutable(dar.Git.Ref) {
+		if gitparse.GitRefIsMutable(dar.Git.Ref) {
 			return nil, resolutionerrors.NewDarNotInstalled(fmt.Errorf(
 				"%s is not installed. Run 'dpm install package' or 'dpm update' to pin and fetch it",
-				damlpackage.FormatGitYamlLine(dar),
+				gitparse.FormatGitYamlLine(dar.Git),
 			))
 		}
 		if !gitpuller.DarIsCached(d.config, dar) {
 			return nil, resolutionerrors.NewDarNotInstalled(fmt.Errorf(
 				"%s is not installed. Run 'dpm install package' or 'dpm update'",
-				damlpackage.FormatGitYamlLine(dar),
+				gitparse.FormatGitYamlLine(dar.Git),
 			))
 		}
 		cachedDar, err := d.config.CachePathForGitDependency(dar.Git.CloneURL, dar.Git.DarPath, dar.Git.Ref)

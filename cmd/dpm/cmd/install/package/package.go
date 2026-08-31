@@ -23,6 +23,7 @@ import (
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/damlpackage"
+	"daml.com/x/assistant/pkg/gitparse"
 	"daml.com/x/assistant/pkg/gitpuller"
 	"daml.com/x/assistant/pkg/sdkinstall"
 	"github.com/Masterminds/semver/v3"
@@ -147,7 +148,7 @@ func installDars(ctx context.Context, config *assistantconfig.Config, dars []*da
 		if updatedDar != nil {
 			var uri string
 			if updatedDar.Scheme() == "git" {
-				uri = damlpackage.FormatGitYamlLine(updatedDar)
+				uri = gitparse.FormatGitYamlLine(updatedDar.Git)
 			} else {
 				uri = updatedDar.StringWithAlias()
 			}
@@ -240,7 +241,7 @@ func installGitDar(ctx context.Context, config *assistantconfig.Config, dar *dam
 		}
 		fmt.Printf("installing git release asset %q...\n", dar.Git.DarPath)
 	} else {
-		fmt.Printf("installing git dar %q...\n", damlpackage.FormatGitYamlLine(dar))
+		fmt.Printf("installing git dar %q...\n", gitparse.FormatGitYamlLine(dar.Git))
 		if gitpuller.DarIsCached(config, dar) {
 			return nil, nil
 		}

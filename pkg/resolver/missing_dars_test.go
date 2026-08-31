@@ -7,6 +7,7 @@ import (
 
 	"daml.com/x/assistant/cmd/dpm/cmd/resolve/resolutionerrors"
 	"daml.com/x/assistant/pkg/damlpackage"
+	"daml.com/x/assistant/pkg/gitparse"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +21,7 @@ func TestFormatMissingDarsError_releaseGroup(t *testing.T) {
 	for _, asset := range []string{"foo.dar", "bar.dar", "baz.dar"} {
 		missing = append(missing, &damlpackage.ParsedDarDependency{
 			FullUrl: mustParseGitReleaseURL(t, release, asset),
-			Git: damlpackage.GitSource{
+			Git: gitparse.GitSource{
 				Ref:      release,
 				DarPath:  asset,
 				CloneURL: cloneURL,
@@ -41,8 +42,9 @@ func TestFormatMissingDarsError_releaseGroup(t *testing.T) {
 }
 
 func TestFormatMissingDarsError_singleDar(t *testing.T) {
-	dep, err := damlpackage.ParseGitDependency("git:github.com/org/repo#main?path=foo.dar")
+	parsed, err := gitparse.ParseGitDependency("git:github.com/org/repo#main?path=foo.dar")
 	require.NoError(t, err)
+	dep := damlpackage.FromGit(parsed)
 
 	err = formatMissingDarsError([]*damlpackage.ParsedDarDependency{dep})
 	require.Error(t, err)

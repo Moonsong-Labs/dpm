@@ -1,4 +1,4 @@
-package damlpackage
+package gitparse
 
 import (
 	"fmt"
@@ -30,10 +30,9 @@ func CoerceGitDependencyInput(raw string, opts GitInputOptions) (string, error) 
 			return "", err
 		}
 	}
-	return FormatGitYamlLine(dep), nil
+	return FormatGitYamlLine(dep.Git), nil
 }
 
-// acceptGitDependencyInput rewrites accepted input shapes into a git: line.
 func acceptGitDependencyInput(raw string, opts GitInputOptions) (string, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
@@ -56,7 +55,6 @@ func acceptGitDependencyInput(raw string, opts GitInputOptions) (string, error) 
 	return "git:" + remainder, nil
 }
 
-// hasGitDependencyShape reports whether raw looks like a git dependency input.
 func hasGitDependencyShape(raw string, opts GitInputOptions) bool {
 	if strings.HasPrefix(raw, "git:") {
 		return true
@@ -70,7 +68,6 @@ func hasGitDependencyShape(raw string, opts GitInputOptions) bool {
 	return hasHostFirstShape(raw) && hasGitDependencySyntax(raw)
 }
 
-// hasGitDependencySyntax reports whether raw uses git-only dependency syntax.
 func hasGitDependencySyntax(raw string) bool {
 	base := raw
 	if hashIdx := strings.Index(raw, "#"); hashIdx >= 0 {
@@ -105,7 +102,6 @@ type webBlobRef struct {
 	filePath string
 }
 
-// tryParseWebBlobURL parses git-host web UI blob/raw URLs into a webBlobRef.
 func tryParseWebBlobURL(raw string) (*webBlobRef, bool, error) {
 	u, err := url.Parse(raw)
 	if err != nil {
@@ -144,7 +140,6 @@ func blobRefFromPath(host, trimmedPath, raw string) (*webBlobRef, bool, error) {
 	}, true, nil
 }
 
-// splitAtBlobMarker splits path segments at a blob or raw marker into repo path and rest.
 func splitAtBlobMarker(parts []string) (repoPath string, rest []string, ok bool) {
 	for i, part := range parts {
 		if part != "blob" && part != "raw" {
@@ -162,7 +157,6 @@ func splitAtBlobMarker(parts []string) (repoPath string, rest []string, ok bool)
 	return "", nil, false
 }
 
-// splitContentRef extracts the git ref and file path from blob/raw URL path segments.
 func splitContentRef(parts []string) (ref, filePath string, ok bool) {
 	if len(parts) < 2 {
 		return "", "", false
@@ -179,7 +173,6 @@ func basePartBeforeFragment(raw string) string {
 	return basePart
 }
 
-// wellKnownGitHosts lists public git forges used when recognizing scheme-relative inputs.
 var wellKnownGitHosts = map[string]bool{
 	"github.com":    true,
 	"gitlab.com":    true,
@@ -191,7 +184,6 @@ func isWellKnownGitHost(host string) bool {
 	return wellKnownGitHosts[host]
 }
 
-// looksLikeHost reports whether segment looks like a host (dotted name, port, or localhost).
 func looksLikeHost(segment string) bool {
 	if segment == "" || strings.ContainsAny(segment, " \t/@") {
 		return false
@@ -203,7 +195,6 @@ func looksLikeHost(segment string) bool {
 	return name == "localhost" || strings.Contains(name, ".")
 }
 
-// hasHostFirstShape reports whether remainder uses host/owner/repo shorthand.
 func hasHostFirstShape(remainder string) bool {
 	basePart := basePartBeforeFragment(remainder)
 	if strings.Contains(basePart, "://") {

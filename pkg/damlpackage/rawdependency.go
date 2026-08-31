@@ -4,26 +4,18 @@ import (
 	"fmt"
 	"strings"
 
+	"daml.com/x/assistant/pkg/gitparse"
 	"github.com/goccy/go-yaml"
 )
 
 var RawDependenciesSchemaErr = fmt.Errorf("dar dependencies fields must be of type string, structured git object, or '{ value: <string>, main-package-id: <string> }' object")
-
-// GitStructuredFields is the structured git dependency form in daml.yaml.
-type GitStructuredFields struct {
-	URL     string `yaml:"url"`
-	Ref     string `yaml:"ref"`
-	Path    string `yaml:"path"`
-	Release string `yaml:"release"`
-	Asset   string `yaml:"asset"`
-}
 
 // RawDependency is the 'string | {...}' sum-type for
 // dependencies / data-dependencies YAML fields
 type RawDependency struct {
 	ValueOnly     *string
 	WithPackageId *withPackageId
-	GitStructured *GitStructuredFields
+	GitStructured *gitparse.GitStructuredFields
 }
 
 type withPackageId struct {
@@ -32,13 +24,13 @@ type withPackageId struct {
 }
 
 type gitStructuredEntry struct {
-	Git GitStructuredFields `yaml:"git"`
+	Git gitparse.GitStructuredFields `yaml:"git"`
 }
 
 func (r *RawDependency) Value() (string, error) {
 	switch {
 	case r.GitStructured != nil:
-		return FormatGitStructuredLine(r.GitStructured)
+		return gitparse.FormatGitStructuredLine(r.GitStructured)
 	case r.WithPackageId != nil:
 		return r.WithPackageId.Value, nil
 	case r.ValueOnly != nil:

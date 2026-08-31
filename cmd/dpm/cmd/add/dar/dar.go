@@ -12,6 +12,7 @@ import (
 	"daml.com/x/assistant/pkg/assistantconfig/assistantremote"
 	"daml.com/x/assistant/pkg/damlpackage"
 	"daml.com/x/assistant/pkg/githubrelease"
+	"daml.com/x/assistant/pkg/gitparse"
 	"daml.com/x/assistant/pkg/gitpuller"
 	"daml.com/x/assistant/pkg/ocilister"
 	"daml.com/x/assistant/pkg/yamledit"
@@ -32,7 +33,7 @@ func Cmd(config *assistantconfig.Config) *cobra.Command {
 			ctx := cmd.Context()
 			uri := args[0]
 
-			normalizedURI, isGit, err := damlpackage.NormalizeDarDependencyURI(uri)
+			normalizedURI, isGit, err := gitparse.NormalizeDarDependencyURI(uri)
 			if err != nil {
 				return err
 			}
@@ -107,12 +108,12 @@ func findExistingDependency(uri, depsFieldName string) (*damlpackage.ParsedDarDe
 
 	var parsedGitKey string
 	var uriRef registry.Reference
-	if damlpackage.IsGitDependencyLine(uri) {
-		parsedGit, err := damlpackage.ParseGitDependency(uri)
+	if gitparse.IsGitDependencyLine(uri) {
+		parsedGit, err := gitparse.ParseGitDependency(uri)
 		if err != nil {
 			return nil, err
 		}
-		parsedGitKey, err = damlpackage.GitLockKeyForDep(parsedGit)
+		parsedGitKey, err = gitparse.GitLockKeyForDep(parsedGit.Git)
 		if err != nil {
 			return nil, err
 		}
@@ -125,9 +126,9 @@ func findExistingDependency(uri, depsFieldName string) (*damlpackage.ParsedDarDe
 	}
 
 	for _, dep := range deps {
-		if damlpackage.IsGitDependencyLine(uri) {
+		if gitparse.IsGitDependencyLine(uri) {
 			if dep.Scheme() == "git" {
-				depKey, err := damlpackage.GitLockKeyForDep(dep)
+				depKey, err := gitparse.GitLockKeyForDep(dep.Git)
 				if err != nil {
 					return nil, err
 				}
@@ -154,7 +155,7 @@ func findExistingDependency(uri, depsFieldName string) (*damlpackage.ParsedDarDe
 
 // AddOrUpdateDar will add when yamlTarget.Index is -1, otherwise it will update at that index.
 func AddOrUpdateDar(ctx context.Context, config *assistantconfig.Config, uri string, insecure bool, yamlTarget yamledit.YamlTarget) error {
-	if damlpackage.IsGitDependencyLine(uri) {
+	if gitparse.IsGitDependencyLine(uri) {
 		return addOrUpdateGitDar(ctx, config, uri, yamlTarget)
 	}
 	return addOrUpdateOciDar(ctx, config, uri, insecure, yamlTarget)
@@ -202,22 +203,22 @@ func addOrUpdateOciDar(ctx context.Context, config *assistantconfig.Config, uri 
 }
 
 func addOrUpdateGitDar(ctx context.Context, config *assistantconfig.Config, uri string, yamlTarget yamledit.YamlTarget) error {
-	dep, err := damlpackage.ParseGitDependency(uri)
+	dep, err := gitparse.ParseGitDependency(uri)
 	if err != nil {
 		return err
 	}
 
 	if dep.Git.Release && strings.TrimSpace(dep.Git.DarPath) == "" {
-		return addOrUpdateGitReleaseDar(ctx, config, dep, yamlTarget)
+		return addOrUpdateGitReleaseDar(ctx, config, dep.Git, yamlTarget)
 	}
 
 	return addOrUpdateSingleGitDar(ctx, config, uri, yamlTarget)
 }
 
-func addOrUpdateGitReleaseDar(ctx context.Context, config *assistantconfig.Config, dep *damlpackage.ParsedDarDependency, yamlTarget yamledit.YamlTarget) (retErr error) {
+func addOrUpdateGitReleaseDar(ctx context.Context, config *assistantconfig.Config, git gitparse.GitSource, yamlTarget yamledit.YamlTarget) (retErr error) {
 	damlPackagePath := yamlTarget.YamlFilePath
 
-	if err := githubrelease.ValidateReleaseHost(dep.Git.CloneURL); err != nil {
+	if err := githubrelease.ValidateReleaseHost(git.CloneURL); err != nil {
 		return err
 	}
 
@@ -227,7 +228,7 @@ func addOrUpdateGitReleaseDar(ctx context.Context, config *assistantconfig.Confi
 		if err != nil {
 			return err
 		}
-		baseLine := damlpackage.FormatGitReleaseBaseLine(dep)
+		baseLine := gitparse.FormatGitReleaseBaseLine(git)
 		quotedLine := fmt.Sprintf("\"%s\"", baseLine)
 		if err := yamledit.EditYaml(yamlTarget, quotedLine); err != nil {
 			return err
@@ -260,7 +261,7 @@ func addOrUpdateGitReleaseDar(ctx context.Context, config *assistantconfig.Confi
 		_, parsedDeps = damlPackage.RawAndParsed(yamlTarget.FieldName)
 	}
 
-	baseKey, err := damlpackage.GitLockKeyForDep(dep)
+	baseKey, err := gitparse.GitLockKeyForDep(git)
 	if err != nil {
 		return err
 	}
@@ -270,9 +271,9 @@ func addOrUpdateGitReleaseDar(ctx context.Context, config *assistantconfig.Confi
 		if !d.Git.Release || strings.TrimSpace(d.Git.DarPath) == "" {
 			continue
 		}
-		expBase := *d
-		expBase.Git.DarPath = ""
-		expBaseKey, err := damlpackage.GitLockKeyForDep(&expBase)
+		expBase := d.Git
+		expBase.DarPath = ""
+		expBaseKey, err := gitparse.GitLockKeyForDep(expBase)
 		if err != nil || expBaseKey != baseKey {
 			continue
 		}
@@ -286,7 +287,7 @@ func addOrUpdateGitReleaseDar(ctx context.Context, config *assistantconfig.Confi
 	gitpuller.ReportPreparedGitDependencies(config, nil, n, false)
 
 	for _, d := range releaseDeps {
-		line := damlpackage.FormatGitYamlLine(d)
+		line := gitparse.FormatGitYamlLine(d.Git)
 		fmt.Printf("Successfully installed and added dar %q to %q\n", line, yamlTarget.YamlFilePath)
 	}
 
@@ -294,19 +295,19 @@ func addOrUpdateGitReleaseDar(ctx context.Context, config *assistantconfig.Confi
 }
 
 func addOrUpdateSingleGitDar(ctx context.Context, config *assistantconfig.Config, uri string, yamlTarget yamledit.YamlTarget) error {
-	dep, err := damlpackage.ParseGitDependency(uri)
+	dep, err := gitparse.ParseGitDependency(uri)
 	if err != nil {
 		return err
 	}
 
-	result, err := gitpuller.PullGitDar(ctx, config, dep)
+	result, err := gitpuller.PullGitDar(ctx, config, damlpackage.FromGit(dep))
 	if err != nil {
 		return err
 	}
 
-	pinnedLine := damlpackage.FormatGitYamlLine(dep)
+	pinnedLine := gitparse.FormatGitYamlLine(dep.Git)
 	if result.Pinned != nil {
-		pinnedLine = damlpackage.FormatGitYamlLine(result.Pinned)
+		pinnedLine = gitparse.FormatGitYamlLine(result.Pinned.Git)
 	}
 
 	target := yamlTarget.Copy()

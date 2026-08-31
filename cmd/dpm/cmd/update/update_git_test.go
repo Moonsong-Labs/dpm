@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"daml.com/x/assistant/pkg/damlpackage"
+	"daml.com/x/assistant/pkg/gitparse"
 	"daml.com/x/assistant/pkg/testutil"
 	"github.com/stretchr/testify/require"
 )
@@ -14,8 +15,9 @@ import (
 func TestCheckGitDependency_releaseDep(t *testing.T) {
 	config := testutil.MkConfig(t)
 
-	dep, err := damlpackage.ParseGitDependency("git:github.com/org/repo?release=v1.0.0&asset=pkg-1.0.0.dar")
+	parsed, err := gitparse.ParseGitDependency("git:github.com/org/repo?release=v1.0.0&asset=pkg-1.0.0.dar")
 	require.NoError(t, err)
+	dep := damlpackage.FromGit(parsed)
 	require.True(t, dep.Git.Release)
 
 	ctx := context.Background()
@@ -35,8 +37,9 @@ func TestCheckGitDependency_releaseDep(t *testing.T) {
 func TestCheckGitDependency_unexpandedRelease(t *testing.T) {
 	config := testutil.MkConfig(t)
 
-	dep, err := damlpackage.ParseGitDependency("git:github.com/org/repo?release=v1.0.0")
+	parsed, err := gitparse.ParseGitDependency("git:github.com/org/repo?release=v1.0.0")
 	require.NoError(t, err)
+	dep := damlpackage.FromGit(parsed)
 	require.True(t, dep.Git.Release)
 
 	err = checkGitDependency(context.Background(), config, dep)

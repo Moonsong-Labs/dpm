@@ -7,6 +7,7 @@ import (
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/damlpackage"
+	"daml.com/x/assistant/pkg/gitparse"
 )
 
 // PrepareGitDependencies expands, canonicalizes, and fetches missing release assets.
@@ -120,7 +121,7 @@ func FetchMissingReleaseAssets(ctx context.Context, config *assistantconfig.Conf
 			continue
 		}
 		if _, err := PullGitDar(ctx, config, dep); err != nil {
-			return fetched, fmt.Errorf("git release asset %q: %w", damlpackage.FormatGitYamlLine(dep), err)
+			return fetched, fmt.Errorf("git release asset %q: %w", gitparse.FormatGitYamlLine(dep.Git), err)
 		}
 		fetched++
 	}

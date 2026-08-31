@@ -14,6 +14,7 @@ import (
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/damlpackage"
 	"daml.com/x/assistant/pkg/githubrelease"
+	"daml.com/x/assistant/pkg/gitparse"
 	"daml.com/x/assistant/pkg/utils"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
@@ -77,12 +78,12 @@ func PullGitDar(ctx context.Context, config *assistantconfig.Config, dep *damlpa
 		return nil, err
 	}
 
-	if !damlpackage.GitRefIsMutable(dep.Git.Ref) && dep.Git.Ref != pulled.ResolvedRef {
-		return nil, damlpackage.GitPinMismatchError(dep, pulled.ResolvedRef)
+	if !gitparse.GitRefIsMutable(dep.Git.Ref) && dep.Git.Ref != pulled.ResolvedRef {
+		return nil, gitparse.GitPinMismatchError(dep.Git, pulled.ResolvedRef)
 	}
 
 	var pinned *damlpackage.ParsedDarDependency
-	if damlpackage.GitRefIsMutable(dep.Git.Ref) && !dep.Git.Release {
+	if gitparse.GitRefIsMutable(dep.Git.Ref) && !dep.Git.Release {
 		pinned = dep.WithGitRef(pulled.ResolvedRef)
 	}
 
@@ -94,11 +95,11 @@ func (p *GitDarPuller) PullDar(ctx context.Context, dep *damlpackage.ParsedDarDe
 		return nil, fmt.Errorf("invalid git dependency: missing clone URL")
 	}
 	if dep.Git.Release {
-		_, _ = fmt.Fprintf(os.Stderr, "Resolving git release: downloading %s\n", damlpackage.DescribeGitFetch(dep))
+		_, _ = fmt.Fprintf(os.Stderr, "Resolving git release: downloading %s\n", gitparse.DescribeGitFetch(dep.Git))
 		return p.pullReleaseDar(ctx, dep)
 	}
 
-	if !damlpackage.GitRefIsMutable(dep.Git.Ref) {
+	if !gitparse.GitRefIsMutable(dep.Git.Ref) {
 		cachedDar, err := p.config.CachePathForGitDependency(dep.Git.CloneURL, dep.Git.DarPath, dep.Git.Ref)
 		if err != nil {
 			return nil, err
@@ -116,7 +117,7 @@ func (p *GitDarPuller) PullDar(ctx context.Context, dep *damlpackage.ParsedDarDe
 		}
 	}
 
-	_, _ = fmt.Fprintf(os.Stderr, "Resolving git dependency: fetching %s\n", damlpackage.DescribeGitFetch(dep))
+	_, _ = fmt.Fprintf(os.Stderr, "Resolving git dependency: fetching %s\n", gitparse.DescribeGitFetch(dep.Git))
 
 	cloneURL := dep.Git.CloneURL.String()
 	workBase, err := p.config.GitWorkPathForRepo(dep.Git.CloneURL)
@@ -138,7 +139,7 @@ func (p *GitDarPuller) PullDar(ctx context.Context, dep *damlpackage.ParsedDarDe
 		return nil, err
 	}
 
-	sourceDar, err := damlpackage.JoinRepoRelativeDarPath(worktree.Filesystem.Root(), dep.Git.DarPath)
+	sourceDar, err := gitparse.JoinRepoRelativeDarPath(worktree.Filesystem.Root(), dep.Git.DarPath)
 	if err != nil {
 		return nil, fmt.Errorf("git dependency %q: %w", dep.Git.DarPath, err)
 	}
