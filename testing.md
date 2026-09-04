@@ -1,8 +1,8 @@
 ---
 title: Testing
+layout: default
+nav_order: 3
 ---
-
-{% include nav.html %}
 
 # Testing
 

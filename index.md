@@ -1,8 +1,9 @@
 ---
 title: Technical design
+layout: default
+nav_order: 1
+permalink: /
 ---
-
-{% include nav.html %}
 
 # Technical design
 
@@ -43,7 +44,7 @@ If resolve fetched, two checkouts of the same unpinned `#main` could compile dif
 
 The diagram is the relationship between those jobs, not the internals of resolve. Resolve is a lookup. The design is which step is allowed to talk to Git.
 
-<pre class="mermaid">
+```mermaid
 flowchart LR
   yaml["daml.yaml<br/>git:…#main?path=foo.dar"]
   mat["Materialize<br/>add / install / update"]
@@ -60,12 +61,7 @@ flowchart LR
   cache --> res
   res --> file
   file --> damlc
-</pre>
-
-<script type="module">
-  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
-  mermaid.initialize({ startOnLoad: true });
-</script>
+```
 
 `damlc` never appears on the left. It only consumes the resolution file. A missing pin or a missing cache file stops at Resolve and tells the operator to materialize; it does not clone as a side effect of asking "what should we compile?"
 

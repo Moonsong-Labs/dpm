@@ -1,5 +1,27 @@
 title: dpm — Git DAR dependencies
 description: Design and resolution for Git-based DAR dependencies
-theme: jekyll-theme-cayman
 url: https://moonsong-labs.github.io
 baseurl: /dpm
+
+remote_theme: just-the-docs/just-the-docs@v0.12.0
+
+plugins:
+  - jekyll-remote-theme
+  - jekyll-seo-tag
+
+search_enabled: true
+heading_anchors: true
+
+aux_links:
+  "GitHub":
+    - "https://github.com/Moonsong-Labs/dpm"
+aux_links_new_tab: true
+
+gh_edit_link: true
+gh_edit_link_text: Edit this page on GitHub
+gh_edit_repository: https://github.com/Moonsong-Labs/dpm
+gh_edit_branch: gh-pages
+gh_edit_view_mode: edit
+
+mermaid:
+  version: "11.4.1"
