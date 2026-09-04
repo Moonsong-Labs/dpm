@@ -7,8 +7,10 @@ permalink: /
 
 # Intro
 
-`dpm` can take a pre-built `.dar` from Git the same way it already takes one from OCI. Point `daml.yaml` at a file in a repository or an asset on a GitHub Release; `dpm` fetches it and pins it so later builds use the same bytes.
+These are the pull toghether docs of the feature implemented in https://github.com/digital-asset/dpm/pull/311.
+The idea behind the feature is that dpm could take a `.dar` from Git the same way it already takes one from OCI.
+Adding a Git-based `.dar` to `daml.yaml` makes `dpm` fetch it and pin it so later builds use the cached file.
 
 ![Demo of Git DAR dependencies in dpm]({{ '/assets/demo.gif' | relative_url }})
 
-How to write those lines is on [Git references]({{ '/git-references.html' | relative_url }}). How to try them is on [Testing]({{ '/testing.html' | relative_url }}). The [technical design]({{ '/technical-design.html' | relative_url }}) is why install fetches and resolve does not.
+Pinning, install, resolve, and the `git:` syntax are covered in these pages: [Git references]({{ '/git-references.html' | relative_url }}) for how to write the lines, [Technical design]({{ '/technical-design.html' | relative_url }}) for how fetch and pin work, and [Testing]({{ '/testing.html' | relative_url }}) for a demo you can run.
