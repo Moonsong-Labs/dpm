@@ -93,46 +93,12 @@ Pasted browser URLs (GitHub `/blob/` / `/raw/`, GitLab `/-/blob/`) and a few hos
 
 `artifact-locations` may hold a **bare** repository URL (host and repo only). The revision and path stay on the dependency line (`@alias#main?path=foo.dar`). A location that already includes a revision or query is rejected: the alias is a repo nickname, not a hidden full dependency.
 
-## Decision: one string, not a YAML map
+## Technical decisions
 
-An earlier sketch used a structured block (url / ref / path as separate keys). That form is not supported.
-
-`daml.yaml` dependencies are strings today — SDK libraries, file paths, OCI URIs. `damlc` and existing tooling expect that. A map entry would be a second schema in the same list, and it would not help the compiler, which never sees the Git location anyway. The one-liner is the whole public contract: what authors write, what `dpm` rewrites when it pins, and what reviews show up as a diff.
-
-## Decision: pin in the field the author used
-
-When install or update resolves a branch or tag, it overwrites that same list entry with the 40-character commit. It does not move the line to the other field, and it does not only record the pin in a side file.
-
-Why the project file, not only a lockfile:
-
-- The lockfile is optional and, today, only records `dependencies`. Git DARs in `data-dependencies` would otherwise have no committed pin.
-- The pin is then visible in the same place reviewers already look (the `daml.yaml` diff).
-- The next `resolve` can treat "is this a full commit?" as a local question. It does not need a second file to know whether the declaration is safe to look up.
-
-Why not rewrite GitHub release lines to a commit: a release asset is identified by **tag + filename**. Those bytes live on GitHub's release storage. A commit SHA would be a different identity and might not even contain that file. The release tag is the declared identity; `update` does not float it.
-
-Aliases are authoring shorthand only. On install or update, an `@alias#…` line is expanded to a full `git:` URI **before** pinning, including when the revision is already a commit. After materialize, the project file is self-contained.
-
-## Decision: HTTPS Git only
-
-Repository fetch uses HTTPS clone URLs. SSH is rejected.
-
-This increment is for **public** repositories (and public GitHub Releases). There is no credential-helper or deploy-key story in `dpm` yet. Shipping SSH would imply one, and would make CI behavior depend on the operator's agent. Private Git can be a later change; it should not be implicit in the first syntax.
-
-`file://` clones exist only so tests can run without the network. They are not a supported project declaration.
-
-Release listing and download go through GitHub's HTTP API, so `?release=` is **github.com only**. Another host with `?release=` is rejected and pointed at the `#ref?path=` form. `daml.yaml` is not rewritten on that rejection.
-
-## Decision: keep the two `daml.yaml` fields
-
-`dependencies` and `data-dependencies` mean different things to the compiler (full package vs interface/data). `dpm` fetches both the same way and must not move an entry from one list to the other.
-
-What differs is the **output** of resolve:
-
-- a Git DAR declared under `dependencies` appears only under resolved dependencies;
-- a Git DAR declared under `data-dependencies` appears only under resolved data-dependencies.
-
-`dpm add dar` requires the author to choose exactly one field, so that choice is never inferred.
+- Use single-line format only
+- Pin in the field the author used
+- Use HTTPS Git only
+- Keep the two `daml.yaml` fields
 
 ## How materialize works (install / update / add)
 
