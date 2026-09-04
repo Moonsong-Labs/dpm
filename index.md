@@ -1,10 +1,12 @@
 ---
-title: Git DAR dependencies
+title: Technical design
 ---
 
-# Git DAR dependencies: design and resolution
+{% include nav.html %}
 
-Git is a second remote source for pre-built `.dar` dependencies, next to OCI. A project can point at a file in a repository or an asset on a GitHub Release; `dpm` fetches it and pins it so later builds use the same bytes.
+# Technical design
+
+Git is a second remote source for pre-built `.dar` dependencies, next to OCI. A project can point at a file in a repository or an asset on a GitHub Release; `dpm` fetches it and pins it so later builds use the same bytes. How to write those lines is on [Git references]({{ '/git-references.html' | relative_url }}). How to try them is on [Testing]({{ '/testing.html' | relative_url }}).
 
 ## The problem
 
@@ -66,32 +68,6 @@ flowchart LR
 </script>
 
 `damlc` never appears on the left. It only consumes the resolution file. A missing pin or a missing cache file stops at Resolve and tells the operator to materialize; it does not clone as a side effect of asking "what should we compile?"
-
-## How a Git dependency is written
-
-The project file stays a list of strings, in `dependencies` or `data-dependencies`. A Git DAR is one string with a `git:` prefix. There are two shapes, because there are two places a `.dar` actually lives.
-
-**Repository file** — the artifact is a path in the tree at a Git revision:
-
-```text
-git:github.com/org/repo#main?path=packages/foo.dar
-```
-
-The revision may be a branch, a tag, or a 40-character commit. The path must be a repository-relative `.dar`. Absolute paths, parent segments, and non-`.dar` paths are rejected.
-
-**GitHub Release asset** — the artifact is attached to a GitHub Release, not necessarily present in the tree:
-
-```text
-git:github.com/org/repo?release=v1.0.0&asset=foo.dar
-```
-
-Omitting `asset` means "every `.dar` on that release". That umbrella form is expanded into one line per asset the first time materialize runs, so later runs have a concrete list.
-
-The two shapes must not be mixed on one line (a release plus a `#ref?path=`). A line is either "file in a repo" or "asset on a release".
-
-Pasted browser URLs (GitHub `/blob/` / `/raw/`, GitLab `/-/blob/`) and a few host-first shorthands are accepted as input and rewritten to the canonical `git:` one-liner. That is authoring convenience, not a second storage format.
-
-`artifact-locations` may hold a **bare** repository URL (host and repo only). The revision and path stay on the dependency line (`@alias#main?path=foo.dar`). A location that already includes a revision or query is rejected: the alias is a repo nickname, not a hidden full dependency.
 
 ## Technical decisions
 
