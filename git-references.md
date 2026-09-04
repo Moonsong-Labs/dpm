@@ -1,7 +1,7 @@
 ---
 title: Git references
 layout: default
-nav_order: 2
+nav_order: 3
 ---
 
 # Git references
@@ -75,4 +75,4 @@ dpm add dar --data-dependencies \
 
 `dpm update --check` verifies that Git dependencies are installed and match the commit pins in `daml.yaml`. It does not fetch and does not edit the file. `dpm update` re-resolves branch and tag refs and rewrites those pins.
 
-See [Technical design]({{ '/' | relative_url }}) for why resolve does not fetch, and [Testing]({{ '/testing.html' | relative_url }}) to try the forms against a demo project.
+See [Technical design]({{ '/technical-design.html' | relative_url }}) for why resolve does not fetch, and [Testing]({{ '/testing.html' | relative_url }}) to try the forms against a demo project.

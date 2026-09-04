@@ -1,7 +1,7 @@
 ---
 title: Testing
 layout: default
-nav_order: 3
+nav_order: 4
 ---
 
 # Testing
@@ -68,4 +68,4 @@ Release samples use `Moonsong-Labs/daml-finance` (`test-release-0.0.6`). Splice 
 - `dependencies` is stricter than `data-dependencies` (same SDK version and LF target across the closure). Splice belongs under `data-dependencies` in this demo for that reason.
 - To re-resolve from scratch, delete `.daml/` and, if you want a cold cache, `~/.dpm/cache/git`.
 
-The syntax itself is on [Git references]({{ '/git-references.html' | relative_url }}). Why install fetches and resolve does not is on [Technical design]({{ '/' | relative_url }}).
+The syntax itself is on [Git references]({{ '/git-references.html' | relative_url }}). Why install fetches and resolve does not is on [Technical design]({{ '/technical-design.html' | relative_url }}).
