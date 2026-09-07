@@ -1,4 +1,4 @@
-title: Git Dependencies for `dpm`
+title: Git dependencies for `dpm`
 description: Design and resolution for Git-based DAR dependencies
 url: https://moonsong-labs.github.io
 baseurl: /dpm
@@ -23,6 +23,14 @@ gh_edit_link_text: Edit this page on GitHub
 gh_edit_repository: https://github.com/Moonsong-Labs/dpm
 gh_edit_branch: gh-pages
 gh_edit_view_mode: edit
+
+callouts:
+  note:
+    title: Note
+    color: blue
+  warning:
+    title: Warning
+    color: yellow
 
 mermaid:
   version: "11.4.1"
