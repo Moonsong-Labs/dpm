@@ -6,7 +6,7 @@ nav_order: 3
 
 # Technical design
 
-This page describes how `dpm` turns a `git:` line in `daml.yaml` into a local DAR file for the compiler, and **why fetching and resolving are kept separate**. It covers the materialize and resolve phases, the cache layout, and how errors surface.
+This page describes **how `dpm` turns a `git:` line in `daml.yaml` into a local DAR file for the compiler**, and **why fetching and resolving are kept separate**. It covers the materialize and resolve phases, the cache layout, and how errors surface.
 
 ## Background
 
@@ -14,16 +14,10 @@ This page describes how `dpm` turns a `git:` line in `daml.yaml` into a local DA
 
 `damlc` does not speak Git or OCI. **It compiles from local files.** If a project lists a remote location in `daml.yaml`, something in front of the compiler must:
 
-1. turn that location into a file on disk; and
-2. hand the compiler only those local paths.
+- turn that location into a file on disk; and
+- hand the compiler only those local paths.
 
 That frontend is `dpm`. Git support **reuses the same lifecycle OCI already uses** (`add`, `install`, `update`, `resolve`) rather than inventing a Git-only workflow.
-
-## Non-goals
-
-This feature fetches a **prebuilt** DAR file. It **does not clone a Daml project and build it**. If the file is missing, empty, or not a DAR at the chosen revision, install fails with that fact. The author of the dependency is responsible for committing or releasing the artifact.
-
-`damlc` **does not learn the `git:` syntax**. The compiler keeps a single input shape: absolute paths in a resolution file written by `dpm`.
 
 ## Materialize and resolve
 
@@ -63,6 +57,9 @@ flowchart LR
 ```
 
 `damlc` never appears on the left. **It only consumes the resolution file.** A missing pin or a missing cache file stops at resolve and tells the operator to materialize. It does not clone as a side effect of asking "what should we compile?"
+
+{: .note }
+This feature fetches a **prebuilt** DAR file. It **does not clone a Daml project and build it**. If the file is missing, empty, or not a DAR at the chosen revision, install fails with that fact. The author of the dependency is responsible for committing or releasing the artifact.
 
 ## Design decisions
 
@@ -158,3 +155,5 @@ Resolve **fails closed**: unpinned ref, missing or empty cache, unexpanded umbre
 ## Compiler integration
 
 From the point of view of `damlc`, **nothing Git-specific happened**. It receives the same kind of resolution document it already receives for OCI and for local paths: two lists of absolute `.dar` files. Git is a **new way for `dpm` to fill those lists**, not a new compiler feature.
+
+`damlc` **does not learn the `git:` syntax**. The compiler keeps a single input shape: absolute paths in a resolution file written by `dpm`.
