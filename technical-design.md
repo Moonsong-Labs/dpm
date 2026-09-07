@@ -68,7 +68,7 @@ The rest of this page follows from four choices.
 | Decision | Why |
 | --- | --- |
 | **One string, not a YAML map** | Dependencies are already strings; the compiler never sees the Git location |
-| **Pin in the field the author used** | The lockfile is optional and skips `data-dependencies`; the pin lands in the diff reviewers read |
+| **Pin in the field the author used** | Mimics the OCI behavior and achieves reproducible builds. The lockfile is optional and skips `data-dependencies`, so the pin lands in the diff reviewers read |
 | **HTTPS Git only** | Public repos need no credentials; private key management necessary for SSH support is not included in scope |
 | **Keep the two `daml.yaml` fields** | `dependencies` and `data-dependencies` mean different things to the compiler (full package vs interface/data), so an entry is never moved from one to the other |
 
