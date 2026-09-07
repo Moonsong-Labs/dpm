@@ -6,7 +6,7 @@ nav_order: 2
 
 # Declaring Git dependencies
 
-To use a Git dependency in your project, declare it in `daml.yaml` under `dependencies` or `data-dependencies`. The dependency is a DAR file (`.dar`) stored in a **public Git repository**. Git is another remote source, like OCI.
+To use a Git dependency in your project, **declare it in `daml.yaml` under `dependencies` or `data-dependencies`**. The dependency is a DAR file (`.dar`) stored in a **public Git repository**. Git is another remote source, like OCI.
 
 The canonical form is **one string**:
 
