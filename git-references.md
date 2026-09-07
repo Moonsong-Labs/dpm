@@ -6,7 +6,7 @@ nav_order: 2
 
 # Declaring Git dependencies
 
-You can depend on a DAR file (`.dar`) stored in a **public Git repository**. Git is another remote source, like OCI. Put the location under `dependencies` or `data-dependencies`.
+To use a Git dependency in your project, declare it in `daml.yaml` under `dependencies` or `data-dependencies`. The dependency is a DAR file (`.dar`) stored in a **public Git repository**. Git is another remote source, like OCI.
 
 The canonical form is **one string**:
 
@@ -43,6 +43,7 @@ For a DAR file attached to a GitHub release, which need not be present in the re
 git:github.com/example/my-dars?release=1.2.3&asset=my-package-1.2.3.dar
 ```
 
+{: .note }
 `?release=` **works only on github.com**. Omit `&asset=` to expand the entry into **one line per `.dar` asset** on that release. On other hosts, use `#<ref>?path=` instead. Release lines are **not rewritten** to a commit SHA.
 
 The two shapes **must not be mixed** on one line. A line is *either* a file in a repo *or* an asset on a release.
