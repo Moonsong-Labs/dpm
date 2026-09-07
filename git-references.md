@@ -46,7 +46,7 @@ git:github.com/example/my-dars?release=1.2.3&asset=my-package-1.2.3.dar
 {: .note }
 `?release=` **works only on github.com**. Omit `&asset=` to expand the entry into **one line per `.dar` asset** on that release. On other hosts, use `#<ref>?path=` instead. Release lines are **not rewritten** to a commit SHA.
 
-The two shapes **must not be mixed** on one line. A line is *either* a file in a repo *or* an asset on a release.
+A line should be *either* a file in a repo *or* an asset on a release. **Using both at the same time returns an error.**
 
 ## Repository aliases
 
