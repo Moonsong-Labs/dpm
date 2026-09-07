@@ -23,7 +23,7 @@ The main idea behind the feature is that `dpm` can **take a DAR file from Git th
 
 This page compiles technical documentation and design for the functionality. Because the functionality is a natural addition to `dpm` and its existing documentation, **the delivery expands the current solution and documentation**:
 
-1. **[PR to `dpm`](https://github.com/digital-asset/dpm/pull/311)**: Feature development, technical documentation, and tests for each new functionality added.
-2. **[PR to Canton Foundation Docs](https://github.com/canton-network/cf-docs/pull/1463)**: Public-facing documentation for `dpm` users.
+1. **[PR to `dpm`](https://github.com/digital-asset/dpm/pull/311)**: feature development, technical documentation, and tests for each new functionality added.
+2. **[PR to Canton Foundation Docs](https://github.com/canton-network/cf-docs/pull/1463)**: public-facing documentation for `dpm` users.
 
 **Milestone 1** and evidence comments were posted in issue [#666 from `canton-dev-fund`](https://github.com/canton-foundation/canton-dev-fund/issues/666), and the full [proposal is in #105](https://github.com/canton-foundation/canton-dev-fund/pull/105#issuecomment-5411478050).
