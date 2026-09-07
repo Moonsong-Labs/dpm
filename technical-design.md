@@ -70,7 +70,7 @@ The rest of this page follows from four choices.
 | **One string, not a YAML map** | Dependencies are already strings; the compiler never sees the Git location |
 | **Pin in the field the author used** | The lockfile is optional and skips `data-dependencies`; the pin lands in the diff reviewers read |
 | **HTTPS Git only** | Public repos need no credentials; SSH would tie CI to the operator's agent |
-| **Keep the two `daml.yaml` fields** | The two fields mean different things to the compiler |
+| **Keep the two `daml.yaml` fields** | `dependencies` and `data-dependencies` mean different things to the compiler (full package vs interface/data), so an entry is never moved from one to the other |
 
 ## Materialize phase
 
