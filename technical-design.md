@@ -63,10 +63,14 @@ This feature fetches a **prebuilt** DAR file. It **does not clone a Daml project
 
 ## Design decisions
 
-- Use single-line format only
-- Pin in the field the author used
-- Use HTTPS Git only
-- Keep the two `daml.yaml` fields
+The rest of this page follows from four choices.
+
+| Decision | Why | What it rules out |
+| --- | --- | --- |
+| **One string, not a YAML map** | Dependencies are already strings; the compiler never sees the Git location | A structured `url` / `ref` / `path` block |
+| **Pin in the field the author used** | The lockfile is optional and skips `data-dependencies`; the pin lands in the diff reviewers read | Moving a line between fields; pinning only in a side file |
+| **HTTPS Git only** | Public repos need no credentials; SSH would tie CI to the operator's agent | `git@` and `ssh://` URLs; private Git in this increment |
+| **Keep the two `daml.yaml` fields** | The two fields mean different things to the compiler | Inferring the field; resolving into the other list |
 
 ## Materialize phase
 
@@ -78,7 +82,7 @@ Materialize **turns a name into bytes plus a fixed name**. It runs the following
 
 - `dpm` replaces an *umbrella* `?release=` line, one with no asset, with **one line per `.dar` asset** on that release. Wrapper entries that carry a main package id keep that wrapper. Assets already listed are not duplicated.
 - If listing the release fails, **the project file is left as it was**. On `add` of a new umbrella line, the temporary line is removed. If listing succeeds and a later download fails, the per-asset lines stay, so a retry does not list the release again.
-- `dpm` **writes the canonical form**. Aliases become full `git:` URIs. Recognized pasted URLs become the one-line form.
+- `dpm` **writes the canonical form**. Aliases become full `git:` URIs *before* pinning, including when the revision is already a commit. Recognized pasted URLs become the one-line form. After materialize, the project file is self-contained.
 
 ### Fetch missing artifacts
 
@@ -87,6 +91,8 @@ For a **repository file**:
 - If the revision is already a full commit and a non-empty cached DAR file exists at the expected path, **nothing is cloned**.
 - Otherwise `dpm` reuses or creates a working clone of that repository, one clone per `host/org/repo`, kept next to the cache. It fetches the requested revision, checks out the commit that revision currently names, and **copies the DAR file out of the worktree**.
 - The copy is **atomic**. The source must be a regular, non-empty `.dar` file. A symlink that leaves the worktree is **rejected**. An empty file in the repository is an **error**, because the publisher did not ship an artifact. An empty file already in the cache is treated as not cached and fetched again.
+
+`file://` clones exist only so tests can run without the network. **They are not a supported project declaration.**
 
 For a **release asset**:
 
