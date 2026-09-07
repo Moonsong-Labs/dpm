@@ -65,7 +65,7 @@ This feature fetches a **prebuilt** DAR file. It **does not clone a Daml project
 
 The rest of this page follows from four choices.
 
-| Decision | Why | What it rules out |
+| Decision | Why | Rejected alternatives |
 | --- | --- | --- |
 | **One string, not a YAML map** | Dependencies are already strings; the compiler never sees the Git location | A structured `url` / `ref` / `path` block |
 | **Pin in the field the author used** | The lockfile is optional and skips `data-dependencies`; the pin lands in the diff reviewers read | Moving a line between fields; pinning only in a side file |
