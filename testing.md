@@ -6,7 +6,7 @@ nav_order: 4
 
 # Testing with a demo project
 
-The [dpm-git-links-demo](https://github.com/Moonsong-Labs/dpm-git-links-demo) project exists to **test this feature end to end**. It is a small Daml app whose `daml.yaml` declares **two Git DAR dependencies**, one under `dependencies` and one under `data-dependencies`, and whose source imports a symbol from each: `Hello.greeting` from the first, `Splice.Amulet.Amulet` from the second. **If either link fails to resolve, the build fails**, which makes the project a self-checking test of Git dependency support.
+The **[dpm-git-links-demo](https://github.com/Moonsong-Labs/dpm-git-links-demo) project** exists to **test this feature end to end**. It is a small Daml app whose `daml.yaml` declares **two Git DAR dependencies**, one under `dependencies` and one under `data-dependencies`. **If either link fails to resolve, the build fails**, which makes the project a self-checking test of Git dependency support.
 
 ```yaml
 dependencies:
