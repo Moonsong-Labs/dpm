@@ -6,7 +6,7 @@ nav_order: 3
 
 # Technical design
 
-Git is a **second remote source** for prebuilt DAR dependencies, next to OCI. A project can point at a file in a repository or an asset on a GitHub release. `dpm` fetches it and **pins it so later builds use the same bytes**. How to write those lines is on [Declaring Git dependencies]({{ '/git-references.html' | relative_url }}). How to try them is on [Testing with a demo project]({{ '/testing.html' | relative_url }}).
+This page describes how `dpm` turns a `git:` line in `daml.yaml` into a local DAR file for the compiler, and **why fetching and resolving are kept separate**. It covers the materialize and resolve phases, the cache layout, and how errors surface.
 
 ## Background
 
