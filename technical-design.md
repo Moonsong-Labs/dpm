@@ -30,7 +30,7 @@ Two different jobs share `daml.yaml`. **Mixing them is what makes builds non-rep
 That split already exists for OCI. Git follows it on purpose:
 
 - **A branch name is not a build input.** The commit it pointed at on the last install is.
-- A cold machine that has never run `install` **must fail `resolve`** with a message that says "run install". It must not silently clone `main` as it exists today.
+- A cold machine that has never run `install` **must fail `resolve`** with a message that says "run install".
 - A warm machine with a populated cache **must be able to resolve and compile offline**.
 
 **If resolve fetched**, two checkouts of the same unpinned `#main` could compile different bytes, and every `dpm build` would depend on Git being reachable.
