@@ -6,7 +6,7 @@ nav_order: 2
 
 # Declaring Git dependencies
 
-You can depend on a DAR file stored in a public Git repository. Git is another remote source, like OCI. Put the location under `dependencies` or `data-dependencies`.
+You can depend on a DAR file (`.dar`) stored in a public Git repository. Git is another remote source, like OCI. Put the location under `dependencies` or `data-dependencies`.
 
 The canonical form is one string:
 
@@ -35,7 +35,7 @@ data-dependencies:
 
 `dpm add dar` and `dpm install` rewrite a branch or tag to a commit SHA in the same field you used. The pin stays under `dependencies` or `data-dependencies`. It is not moved.
 
-## Release assets
+## GitHub release assets
 
 For a DAR file attached to a GitHub release, which need not be present in the repository tree:
 
@@ -78,4 +78,4 @@ Do not paste a browser URL into `daml.yaml` yourself. `dpm` only normalizes thos
 
 `dpm update --check` verifies that Git dependencies are installed and match the commit pins in `daml.yaml`. It does not fetch and does not edit the file. `dpm update` re-resolves branch and tag refs and rewrites those pins.
 
-See [Technical design]({{ '/technical-design.html' | relative_url }}) for why resolve does not fetch, and [Demo project]({{ '/testing.html' | relative_url }}) to try the forms against a demo project.
+See [Technical design]({{ '/technical-design.html' | relative_url }}) for why resolve does not fetch, and [Testing with a demo project]({{ '/testing.html' | relative_url }}) to try the forms against a demo project.

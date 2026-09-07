@@ -1,10 +1,10 @@
 ---
-title: Demo project
+title: Testing with a demo project
 layout: default
 nav_order: 4
 ---
 
-# Demo project
+# Testing with a demo project
 
 Use the [dpm-git-links-demo](https://github.com/Moonsong-Labs/dpm-git-links-demo) project. It is a small Daml app whose `daml.yaml` already declares two Git DARs, and whose source imports a symbol from each. If either link fails to resolve, the build fails.
 
