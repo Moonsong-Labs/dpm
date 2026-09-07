@@ -26,4 +26,4 @@ This page compiles technical documentation and design for the functionality. Bec
 1. **[PR to `dpm`](https://github.com/digital-asset/dpm/pull/311)**: feature development, technical documentation, and tests for each new functionality added.
 2. **[PR to Canton Foundation Docs](https://github.com/canton-network/cf-docs/pull/1463)**: public-facing documentation for `dpm` users.
 
-**Milestone 1** and evidence comments were posted in issue [#666 from `canton-dev-fund`](https://github.com/canton-foundation/canton-dev-fund/issues/666), and the full [proposal is in #105](https://github.com/canton-foundation/canton-dev-fund/pull/105#issuecomment-5411478050).
+**Milestone 1** and evidence comments were posted in issue [#666 from `canton-dev-fund`](https://github.com/canton-foundation/canton-dev-fund/issues/666).
