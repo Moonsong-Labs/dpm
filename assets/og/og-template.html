@@ -1,0 +1,43 @@
+<!doctype html>
+<!-- 1200x630 og:image source. Regenerate assets/og.png with:
+     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --hide-scrollbars \
+       --window-size=1200,630 --screenshot=assets/og.png assets/og/og-template.html -->
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  :root { --bg: #0e1b45; --fg: #f8fafc; --muted: #aab4cc; --accent: #7253ed; }
+  * { margin: 0; box-sizing: border-box; }
+  body {
+    width: 1200px; height: 630px; overflow: hidden;
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 72px 80px;
+    background: var(--bg);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--fg);
+  }
+  .logo { display: flex; align-items: center; gap: 20px; }
+  .logo img { width: 64px; height: 64px; border-radius: 14px; }
+  .logo span { font-size: 32px; font-weight: 600; color: var(--muted); }
+  h1 { font-size: 76px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; max-width: 16ch; }
+  .sub { font-size: 34px; color: var(--muted); margin-top: 24px; }
+  .footer { display: flex; align-items: center; justify-content: space-between; }
+  .url { font-size: 28px; color: var(--muted); }
+  .accent-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 14px; background: var(--accent); }
+</style>
+</head>
+<body>
+  <div class="accent-bar"></div>
+  <div class="logo">
+    <img src="../msl-icon.png" alt="" />
+    <span>Moonsong Labs</span>
+  </div>
+  <div>
+    <h1>Git-based DAR dependencies for dpm</h1>
+    <div class="sub">Syntax, technical design, and a demo project. Dev Fund Proposal #105.</div>
+  </div>
+  <div class="footer">
+    <div class="url">moonsong-labs.github.io/dpm</div>
+  </div>
+</body>
+</html>
