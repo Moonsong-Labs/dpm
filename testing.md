@@ -6,7 +6,9 @@ nav_order: 4
 
 # Testing with a demo project
 
-For functional testing, use the [dpm-git-links-demo](https://github.com/Moonsong-Labs/dpm-git-links-demo) project. It is a small Daml app created for testing purposes. Its `daml.yaml` already declares **two Git DARs**, and its source imports a symbol from each. **If either link fails to resolve, the build fails.**
+The [dpm-git-links-demo](https://github.com/Moonsong-Labs/dpm-git-links-demo) project exists to **test this feature end to end**. It is a small Daml app whose `daml.yaml` declares **two Git DAR dependencies**, one under `dependencies` and one under `data-dependencies`, and whose source imports a symbol from each. **If either link fails to resolve, the build fails**, which makes the project a self-checking test of Git dependency support.
+
+This page covers the quickest path: build `dpm-dev`, then install, build, and test the demo. For the full testing details, including every declaration form and the expected output, read the [demo README](https://github.com/Moonsong-Labs/dpm-git-links-demo#readme).
 
 ```yaml
 dependencies:
@@ -16,7 +18,7 @@ data-dependencies:
   - git:github.com/canton-network/splice#release-line-0.6.8?path=daml/dars/splice-amulet-0.1.19.dar
 ```
 
-`Hello.greeting` comes from the first line. `Splice.Amulet.Amulet` comes from the second. The demo README is the longer version of this page.
+`Hello.greeting` comes from the first line. `Splice.Amulet.Amulet` comes from the second.
 
 ## Prerequisites
 
