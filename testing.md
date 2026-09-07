@@ -18,7 +18,7 @@ data-dependencies:
 
 `Hello.greeting` comes from the first line. `Splice.Amulet.Amulet` comes from the second. The demo README is the longer version of this page.
 
-## What you need
+## What You Need
 
 Git DAR support is not in a released `dpm` yet. Build `dpm-dev` from the Moonsong Labs fork, branch `proposal/git-dependencies-support` (Go 1.25.0):
 
@@ -31,7 +31,7 @@ export PATH="$PWD/bin:$PATH"
 
 The first fetch needs network access to `github.com`. After that the DARs live under `~/.dpm/cache`.
 
-## Quick start
+## Quick Start
 
 From the demo checkout:
 
@@ -47,7 +47,7 @@ dpm-dev test
 
 To prove the links are doing real work, delete either Git line and build again. Without splice you get `Could not find module 'Splice.Amulet'`. Without Hello you get `Could not find module 'Hello'`.
 
-## Other YAML shapes
+## Other YAML Shapes
 
 The demo `samples/` folder has the other declaration forms. Quoted refs there are inputs (`master`, `0.6.10`, `main`); they are not frozen SHAs.
 
@@ -62,10 +62,10 @@ The demo `samples/` folder has the other declaration forms. Quoted refs there ar
 
 Release samples use `Moonsong-Labs/daml-finance` (`test-release-0.0.6`). Splice publishes DARs in the tree, not as release assets.
 
-## Gotchas worth knowing
+## Gotchas Worth Knowing
 
 - Paste a browser URL into `dpm-dev add dar`, not into `daml.yaml`. Reading the file expects a `git:` line; a raw `https://` dependency fails with `http dependencies not yet supported`.
 - `dependencies` is stricter than `data-dependencies` (same SDK version and LF target across the closure). Splice belongs under `data-dependencies` in this demo for that reason.
 - To re-resolve from scratch, delete `.daml/` and, if you want a cold cache, `~/.dpm/cache/git`.
 
-The syntax itself is on [Git references]({{ '/git-references.html' | relative_url }}). Why install fetches and resolve does not is on [Technical design]({{ '/technical-design.html' | relative_url }}).
+The syntax itself is on [Git References]({{ '/git-references.html' | relative_url }}). Why install fetches and resolve does not is on [Technical Design]({{ '/technical-design.html' | relative_url }}).

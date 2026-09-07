@@ -15,7 +15,7 @@ It solves a direct friction in Canton/Daml development caused by manual handling
 
 ![Demo of Git DAR dependencies in dpm]({{ '/assets/demo.gif' | relative_url }})
 
-Pinning, install, resolve, and the `git:` syntax are covered in these pages: [Git references]({{ '/git-references.html' | relative_url }}) for how to write the lines, [Technical design]({{ '/technical-design.html' | relative_url }}) for how fetch and pin work, and [Testing]({{ '/testing.html' | relative_url }}) for a demo you can run.
+Pinning, install, resolve, and the `git:` syntax are covered in these pages: [Git References]({{ '/git-references.html' | relative_url }}) for how to write the lines, [Technical Design]({{ '/technical-design.html' | relative_url }}) for how fetch and pin work, and [Testing]({{ '/testing.html' | relative_url }}) for a demo you can run.
 
 ## Delivery
 

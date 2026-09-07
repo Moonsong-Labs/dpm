@@ -1,14 +1,14 @@
 ---
-title: Technical design
+title: Technical Design
 layout: default
 nav_order: 2
 ---
 
-# Technical design
+# Technical Design
 
-Git is a second remote source for pre-built `.dar` dependencies, next to OCI. A project can point at a file in a repository or an asset on a GitHub Release; `dpm` fetches it and pins it so later builds use the same bytes. How to write those lines is on [Git references]({{ '/git-references.html' | relative_url }}). How to try them is on [Testing]({{ '/testing.html' | relative_url }}).
+Git is a second remote source for pre-built `.dar` dependencies, next to OCI. A project can point at a file in a repository or an asset on a GitHub Release; `dpm` fetches it and pins it so later builds use the same bytes. How to write those lines is on [Git References]({{ '/git-references.html' | relative_url }}). How to try them is on [Testing]({{ '/testing.html' | relative_url }}).
 
-## The problem
+## The Problem
 
 `dpm` already treats remote DARs as first-class dependencies. The existing remote source is OCI. Teams also publish pre-built `.dar` files in Git: a path inside a repository, or an asset on a GitHub Release.
 
@@ -17,15 +17,15 @@ Git is a second remote source for pre-built `.dar` dependencies, next to OCI. A 
 1. turn that location into a file on disk; and
 2. hand the compiler only those local paths.
 
-That front-end is `dpm`. Git support reuses the same lifecycle OCI already uses — `add`, `install`, `update`, `resolve` — rather than inventing a Git-only workflow.
+That front-end is `dpm`. Git support reuses the same lifecycle OCI already uses (`add`, `install`, `update`, `resolve`) rather than inventing a Git-only workflow.
 
-## What we are not doing
+## What We Are Not Doing
 
 This feature fetches a **pre-built** `.dar`. It does not clone a Daml project and build it. If the file is missing, empty, or not a `.dar` at the chosen revision, install fails with that fact. The author of the dependency is responsible for committing or releasing the artifact.
 
 We also do not teach `damlc` the `git:` syntax. The compiler keeps a single input shape: absolute paths in a resolution file written by `dpm`.
 
-## The split that everything else follows
+## The Split That Everything Else Follows
 
 Two different jobs share `daml.yaml`. Mixing them is what makes builds non-reproducible.
 
@@ -64,18 +64,18 @@ flowchart LR
 
 `damlc` never appears on the left. It only consumes the resolution file. A missing pin or a missing cache file stops at Resolve and tells the operator to materialize; it does not clone as a side effect of asking "what should we compile?"
 
-## Technical decisions
+## Technical Decisions
 
 - Use single-line format only
 - Pin in the field the author used
 - Use HTTPS Git only
 - Keep the two `daml.yaml` fields
 
-## How materialize works (install / update / add)
+## How Materialize Works (Install / Update / Add)
 
 Think of this as turning a name into bytes plus a fixed name.
 
-### 1. Prepare the file
+### 1. Prepare the File
 
 Both fields are walked.
 
@@ -83,7 +83,7 @@ Both fields are walked.
 - If listing the release fails, the project file is left as it was (on `add` of a new umbrella line, the temporary line is removed). If listing succeeds and a later download fails, the per-asset lines stay, so a retry does not list the release again.
 - Canonical form is written: aliases become full `git:` URIs; recognized pasted URLs become the one-liner.
 
-### 2. Fetch what is missing
+### 2. Fetch What Is Missing
 
 For a **repository file**:
 
@@ -96,31 +96,31 @@ For a **release asset**:
 - If the cached file is present and non-empty, it is reused.
 - Otherwise the named asset is downloaded from the GitHub Releases API into the cache.
 
-### 3. Pin moving names
+### 3. Pin Moving Names
 
 After a successful repository fetch, if the declared revision was a branch or tag, that list entry is rewritten to the commit that was just checked out. Already-pinned commits are not re-resolved; `update` only fetches them when the cache file is missing. Release tags are not rewritten.
 
 `dpm update --check` is the read-only counterpart: it succeeds when every repository Git DAR is commit-pinned and cached, and every release asset is cached. It fails on a moving ref, a missing cache file, or an umbrella release that was never expanded. It does not fetch and does not edit `daml.yaml`.
 
-## How resolve works
+## How Resolve Works
 
 Resolve is a cache lookup driven by the **already-pinned** project file.
 
 1. Read `daml.yaml`. Do not clone, do not call GitHub, do not edit the file.
 2. Walk `dependencies`, then `data-dependencies`.
 3. For each Git repository-file line:
-   - if the revision is not a 40-character commit, fail — the project is not installed (a branch name is not enough);
-   - if the cache does not contain a non-empty file for `(repository, commit, path)`, fail — install (or update) has not materialized it;
+   - if the revision is not a 40-character commit, fail: the project is not installed (a branch name is not enough);
+   - if the cache does not contain a non-empty file for `(repository, commit, path)`, fail: install (or update) has not materialized it;
    - otherwise emit that file's absolute path.
 4. For each Git release line:
-   - if there is no asset (still an umbrella), fail — expand first via install or update;
+   - if there is no asset (still an umbrella), fail: expand first via install or update;
    - if the cache file for `(repository, tag, asset)` is missing or empty, fail;
    - otherwise emit that absolute path.
 5. Write those paths into the resolution document, in the matching resolved list. `dpm` then starts `damlc` with that document. The compiler never sees a `git:` string.
 
 That is the whole resolution implementation: **parse the declaration, demand a pin, demand a cache hit, return a path**. The interesting work (network, clone, rewrite) already happened in materialize.
 
-## How the cache is addressed
+## How the Cache Is Addressed
 
 The cache is content-addressed enough that two projects asking for the same artifact share one file.
 
@@ -133,7 +133,7 @@ Path segments are sanitized so a hostile repository name or `..` in a path canno
 
 The working clone (`…/<repo>/.work/…`) is an implementation detail of fetch. Resolve never looks at it. Only the copied `.dar` under the commit (or release hash) is a resolve input.
 
-## What `dpm update` does differently
+## What `dpm update` Does Differently
 
 `install` is "make the current declaration real". If the line already says a commit and the file is cached, it is a no-op.
 
@@ -149,12 +149,12 @@ That matches OCI: floating tags are refreshed on update; digest pins are not.
 
 When the existing lockfile switch is on, Git DARs in `dependencies` participate with a stable identity key (repository plus path, or release plus asset) the same way OCI DARs do. The lockfile still does **not** record `data-dependencies`. That is why pinning in `daml.yaml` is the reproducibility mechanism that covers both fields.
 
-## Failure model
+## Failure Model
 
 Materialize fails closed: unknown host for releases, SSH, mixed shapes, missing path, missing file at that revision, empty source `.dar`, symlink escape, unknown release or asset.
 
 Resolve fails closed: unpinned ref, missing or empty cache, unexpanded umbrella release. The error tells the operator to install or update. It does not repair the project as a side effect of asking "what should we compile?"
 
-## Why this is enough for the compiler
+## Why This Is Enough for the Compiler
 
 From `damlc`'s point of view nothing Git-specific happened. It receives the same kind of resolution document it already receives for OCI and for local paths: two lists of absolute `.dar` files. Git is a new way for `dpm` to **fill** those lists, not a new compiler feature.

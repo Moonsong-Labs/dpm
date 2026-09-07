@@ -1,10 +1,10 @@
 ---
-title: Git references
+title: Git References
 layout: default
 nav_order: 3
 ---
 
-# Git references
+# Git References
 
 You can depend on a `.dar` stored in a public Git repository. Git is another remote source, like OCI. Put the location under `dependencies` or `data-dependencies`.
 
@@ -18,7 +18,7 @@ git:<host>/<owner>/<repo>#<ref>?path=<path/inside/the/repo.dar>
 - `?path=` is required, relative to the repo root, and must end in `.dar`.
 - A trailing `.git` on the repo is optional; `dpm` drops it.
 - HTTPS only. SSH clone URLs (`git:ssh://…` and `git@github.com:org/repo`) are rejected. The repository must be public.
-- Any public Git host reachable over HTTPS works for this form — GitHub, GitLab, Bitbucket, Codeberg, or a self-hosted server.
+- Any public Git host reachable over HTTPS works for this form: GitHub, GitLab, Bitbucket, Codeberg, or a self-hosted server.
 
 Add it with `dpm add dar`. Exactly one of `--dependencies` or `--data-dependencies` is required:
 
@@ -26,7 +26,7 @@ Add it with `dpm add dar`. Exactly one of `--dependencies` or `--data-dependenci
 dpm add dar --data-dependencies 'git:example.com/my/dars#1.2.3?path=my-package-1.2.3.dar'
 ```
 
-Resulting `daml.yaml` after install — the branch or tag is rewritten to a commit SHA:
+Resulting `daml.yaml` after install. The branch or tag is rewritten to a commit SHA:
 
 ```yaml
 data-dependencies:
@@ -35,7 +35,7 @@ data-dependencies:
 
 `dpm add dar` and `dpm install` rewrite a branch or tag to a commit SHA in the same field you used. The pin stays under `dependencies` or `data-dependencies`; it is not moved.
 
-## GitHub releases
+## GitHub Releases
 
 For a `.dar` attached to a GitHub Release (not necessarily present in the tree):
 
@@ -64,15 +64,15 @@ A location URL that already carries `#` or `?` is rejected.
 
 ## Browser URLs
 
-`dpm add dar` also accepts a browser `raw` / `blob` URL to a `.dar` (GitHub `…/blob|raw/<ref>/…`, GitLab `…/-/blob/<ref>/…`) and writes the canonical `git:` line. Do not paste a browser URL into `daml.yaml` yourself — `dpm` only normalizes those URLs on `add`.
+`dpm add dar` also accepts a browser `raw` / `blob` URL to a `.dar` (GitHub `…/blob|raw/<ref>/…`, GitLab `…/-/blob/<ref>/…`) and writes the canonical `git:` line. Do not paste a browser URL into `daml.yaml` yourself, since `dpm` only normalizes those URLs on `add`.
 
 ```shell
 dpm add dar --data-dependencies \
   'https://github.com/example/my-dars/raw/refs/tags/1.2.3/my-package-1.2.3.dar'
 ```
 
-## Checking pins
+## Checking Pins
 
 `dpm update --check` verifies that Git dependencies are installed and match the commit pins in `daml.yaml`. It does not fetch and does not edit the file. `dpm update` re-resolves branch and tag refs and rewrites those pins.
 
-See [Technical design]({{ '/technical-design.html' | relative_url }}) for why resolve does not fetch, and [Testing]({{ '/testing.html' | relative_url }}) to try the forms against a demo project.
+See [Technical Design]({{ '/technical-design.html' | relative_url }}) for why resolve does not fetch, and [Testing]({{ '/testing.html' | relative_url }}) to try the forms against a demo project.
