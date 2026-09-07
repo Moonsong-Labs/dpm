@@ -73,5 +73,3 @@ Release samples use `Moonsong-Labs/daml-finance` (`test-release-0.0.6`). Splice 
 - **Paste a browser URL into `dpm-dev add dar`, not into `daml.yaml`.** Reading the file expects a `git:` line. A raw `https://` dependency fails with `http dependencies not yet supported`.
 - **`dependencies` is stricter than `data-dependencies`.** It requires the same SDK version and LF target across the closure. Splice belongs under `data-dependencies` in this demo for that reason.
 - **To re-resolve from scratch, delete `.daml/`.** For a cold cache, also delete `~/.dpm/cache/git`.
-
-The syntax itself is on [Declaring Git dependencies]({{ '/git-references.html' | relative_url }}). Why install fetches and resolve does not is on [Technical design]({{ '/technical-design.html' | relative_url }}).
