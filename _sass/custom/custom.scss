@@ -14,3 +14,9 @@
   height: 32px;
   border-radius: 6px;
 }
+
+.site-nav {
+  @include mq(md) {
+    padding-top: 1.5rem;
+  }
+}
