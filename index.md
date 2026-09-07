@@ -7,17 +7,17 @@ permalink: /
 
 # Overview
 
-Git-Based DAR Dependencies for dpm (Dev Fund Proposal #105) adds support for **resolving Daml dependencies from Git-hosted prebuilt DAR files (`.dar`)** in the `dpm` CLI.
+Git-Based DAR Dependencies for dpm ([Dev Fund Proposal #105](https://github.com/canton-foundation/canton-dev-fund/pull/105#issuecomment-5411478050)) adds support for **resolving Daml dependencies from Git-hosted prebuilt DAR files (`.dar`)** in the `dpm` CLI.
 
 ![Demo of Git DAR dependencies in dpm]({{ '/assets/demo.gif' | relative_url }})
 
 The main idea behind the feature is that `dpm` can **take a DAR file from Git the same way it already takes one from OCI**. Adding a Git-based DAR file to `daml.yaml` makes `dpm` fetch it and **pin it** so later builds use the cached file.
 
-## Documentation
+## Content
 
-- [Declaring Git dependencies]({{ '/git-references.html' | relative_url }}): how to write the `git:` lines, use repository aliases and GitHub release assets, and verify pins.
-- [Technical design]({{ '/technical-design.html' | relative_url }}): how fetch and pin work, and why resolve never uses the network.
-- [Testing with a demo project]({{ '/testing.html' | relative_url }}): a demo you can build and run against real Git DAR dependencies.
+- **[Declaring Git dependencies]({{ '/git-references.html' | relative_url }})**: how to write the `git:` lines, use repository aliases and GitHub release assets, and verify pins.
+- **[Technical design]({{ '/technical-design.html' | relative_url }})**: how fetch and pin work, and why resolve never uses the network.
+- **[Testing with a demo project]({{ '/testing.html' | relative_url }})**: a demo you can build and run against real Git DAR dependencies.
 
 ## Deliverables
 
