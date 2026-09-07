@@ -38,25 +38,15 @@ That split already exists for OCI. Git follows it on purpose:
 The following figure shows **which commands are allowed to talk to Git**. Resolve is a lookup.
 
 ```mermaid
-flowchart LR
-  yaml["daml.yaml<br/>git:…#main?path=foo.dar"]
-  mat["Materialize<br/>add / install / update"]
-  pinned["daml.yaml<br/>git:…#commit?path=foo.dar"]
-  cache["Local cache<br/>…/commit/foo.dar"]
-  res["Resolve<br/>no network, no rewrite"]
-  file["Resolution file<br/>absolute .dar paths"]
-  damlc["damlc"]
-
-  yaml --> mat
-  mat -->|"fetch + pin"| pinned
-  mat -->|"copy .dar"| cache
-  pinned --> res
-  cache --> res
-  res --> file
-  file --> damlc
+flowchart TD
+  yaml["daml.yaml  git:…#ref"] --> mat{Materialize}
+  mat -->|unpinned ref| pin["fetch + pin + cache"]
+  mat -->|pinned, miss| copy["fetch + cache"]
+  mat -->|pinned, hit| skip[no-op]
+  pin & copy & skip --> res["Resolve: lookup only"] --> damlc
 ```
 
-`damlc` never appears on the left. **It only consumes the resolution file.** A missing pin or a missing cache file stops at resolve and tells the operator to materialize. It does not clone as a side effect of asking "what should we compile?"
+`damlc` appears only at the end of the graph. **It only consumes the resolution file.** A missing pin or a missing cache file stops at resolve and tells the operator to materialize. It does not clone as a side effect of asking "what should we compile?"
 
 {: .note }
 This feature fetches a **prebuilt** DAR file. It **does not clone a Daml project and build it**. If the file is missing, empty, or not a DAR at the chosen revision, install fails with that fact. The author of the dependency is responsible for committing or releasing the artifact.
