@@ -35,7 +35,7 @@ That split already exists for OCI. Git follows it on purpose:
 
 **If resolve fetched**, two checkouts of the same unpinned `#main` could compile different bytes, and every `dpm build` would depend on Git being reachable.
 
-The following figure shows **which commands are allowed to talk to Git**. Resolve is a lookup.
+The following figure shows **the three materialize outcomes for a `git:` line**, then resolve as a cache lookup that feeds `damlc`.
 
 ```mermaid
 flowchart TD
