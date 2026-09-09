@@ -35,18 +35,34 @@ That split already exists for OCI. Git follows it on purpose:
 
 **If resolve fetched**, two checkouts of the same unpinned `#main` could compile different bytes, and every `dpm build` would depend on Git being reachable.
 
-The following figure shows **the three materialize outcomes for a `git:` line**, then resolve as a cache lookup that feeds `damlc`.
+The following figure shows **what resolve does with a `git:` line**: demand a SHA, demand a cache hit, then hand `damlc` a local path. A miss goes through **install** and **pin dependency** back to `daml.yaml`, so resolve can run again.
 
 ```mermaid
+---
+config:
+  flowchart:
+    ranker: tight-tree
+---
 flowchart TD
-  yaml["daml.yaml  git:…#ref"] --> mat{Materialize}
-  mat -->|unpinned ref| pin["fetch + pin + cache"]
-  mat -->|pinned, miss| copy["fetch + cache"]
-  mat -->|pinned, hit| skip[no-op]
-  pin & copy & skip --> res["Resolve: lookup only"] --> damlc
+  yaml["daml.yaml"]
+  pin{revision is a SHA?}
+  hit{cache hit?}
+  install[install package]
+  path["absolute .dar path"]
+  damlc[damlc]
+  yaml --> pin
+  pin ~~~ hit
+  hit ~~~ path
+  path ~~~ damlc
+  yaml --> pin
+  pin -->|no| install
+  install --> yaml
+  pin -->|yes| hit
+  hit -->|no| install
+  hit -->|yes| path --> damlc
 ```
 
-`damlc` appears only at the end of the graph. **It only consumes the resolution file.** A missing pin or a missing cache file stops at resolve and tells the operator to materialize. It does not clone as a side effect of asking "what should we compile?"
+Resolve itself does not clone. **Install** fetches and may rewrite the file; then resolve is only a lookup.
 
 {: .note }
 This feature fetches a **prebuilt** DAR file. It **does not clone a Daml project and build it**. If the file is missing, empty, or not a DAR at the chosen revision, install fails with that fact. The author of the dependency is responsible for committing or releasing the artifact.

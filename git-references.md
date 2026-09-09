@@ -35,6 +35,16 @@ data-dependencies:
 
 `dpm add dar` and `dpm install` rewrite a branch or tag to a commit SHA **in the same field you used**. The pin stays under `dependencies` or `data-dependencies`. It is not moved.
 
+The following figure shows **how a `git:` line becomes a local path for the compiler**.
+
+```mermaid
+flowchart LR
+  a["git:…#main?path=foo.dar"] -->|install| b["git:…#82a5…?path=foo.dar"]
+  b --> c["cache/…/82a5…/foo.dar"]
+  c -->|resolve| d[resolution file]
+  d --> e[damlc]
+```
+
 ## GitHub release assets
 
 For a DAR file attached to a GitHub release, which need not be present in the repository tree:
