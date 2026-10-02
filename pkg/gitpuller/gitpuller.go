@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/damlpackage"
@@ -20,6 +22,7 @@ import (
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/storage/memory"
+	"github.com/gofrs/flock"
 )
 
 type refKind int
@@ -129,6 +132,12 @@ func (p *GitDarPuller) PullDar(ctx context.Context, dep *damlpackage.ParsedDarDe
 		return nil, err
 	}
 
+	unlock, err := lockRepo(ctx, workBase)
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
+
 	repo, commitSHA, err := p.cloneOrOpen(ctx, workBase, cloneURL, dep.Git.Ref)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch git repository %s (ref %q): %w", cloneURL, dep.Git.Ref, err)
@@ -234,6 +243,22 @@ func (p *GitDarPuller) pullReleaseDar(ctx context.Context, dep *damlpackage.Pars
 		ResolvedRef: dep.Git.Ref,
 		DarFilePath: cachedDar,
 		Digest:      digest,
+	}, nil
+}
+
+// lockRepo exclusively locks the shared clone directory until the returned
+// function runs. The lock is also released if the process exits.
+func lockRepo(ctx context.Context, workBase string) (func(), error) {
+	fileLock := flock.New(filepath.Join(workBase, ".lock"))
+	if _, err := fileLock.TryLockContext(ctx, 50*time.Millisecond); err != nil {
+		return nil, fmt.Errorf("failed to lock git repository work directory: %w", err)
+	}
+
+	var once sync.Once
+	return func() {
+		once.Do(func() {
+			_ = fileLock.Unlock()
+		})
 	}, nil
 }
 

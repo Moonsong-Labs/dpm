@@ -1,11 +1,16 @@
 package gitpuller
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/damlpackage"
@@ -17,6 +22,57 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestLockRepo_excludesOtherProcesses(t *testing.T) {
+	if dir := os.Getenv("DPM_LOCK_DIR"); dir != "" {
+		runLockRepoChild(dir)
+		return
+	}
+
+	dir := t.TempDir()
+	unlock, err := lockRepo(context.Background(), dir)
+	require.NoError(t, err)
+
+	waitOut, waitErr := runLockRepoProcess(dir, "wait")
+	var exitErr *exec.ExitError
+	require.ErrorAs(t, waitErr, &exitErr)
+	require.Equal(t, 2, exitErr.ExitCode(), string(waitOut))
+
+	unlock()
+
+	acquireOut, acquireErr := runLockRepoProcess(dir, "acquire")
+	require.NoError(t, acquireErr, string(acquireOut))
+}
+
+func runLockRepoProcess(dir, expect string) ([]byte, error) {
+	cmd := exec.Command(os.Args[0], "-test.run=^TestLockRepo_excludesOtherProcesses$")
+	cmd.Env = append(os.Environ(), "DPM_LOCK_DIR="+dir, "DPM_LOCK_EXPECT="+expect)
+	return cmd.CombinedOutput()
+}
+
+func runLockRepoChild(dir string) {
+	timeout := 300 * time.Millisecond
+	if os.Getenv("DPM_LOCK_EXPECT") == "acquire" {
+		timeout = 2 * time.Second
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	unlock, err := lockRepo(ctx, dir)
+	if os.Getenv("DPM_LOCK_EXPECT") == "acquire" {
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "acquire: %v\n", err)
+			os.Exit(1)
+		}
+		unlock()
+		os.Exit(0)
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		os.Exit(2)
+	}
+	fmt.Fprintf(os.Stderr, "wait: %v\n", err)
+	os.Exit(1)
+}
 
 func mustGitDep(t *testing.T, raw string) *damlpackage.ParsedDarDependency {
 	t.Helper()
