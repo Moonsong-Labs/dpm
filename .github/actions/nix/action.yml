@@ -3,6 +3,22 @@ description: Setup Nix
 runs:
   using: composite
   steps:
+
+    - name: Install Nix
+      # GitHub-hosted runners do not have Nix preinstalled.
+      if: runner.environment == 'github-hosted'
+      uses: NixOS/nix-installer-action@6b8548fe06acfb0155a50ab5d561accb215764cc
+      with:
+        installer-version: "2.35.2"
+        extra-conf: |
+          experimental-features = nix-command flakes      
+
+    - name: Verify Nix installation
+      # GitHub-hosted runners do not have Nix preinstalled.
+      if: runner.environment == 'github-hosted'
+      run: nix --version
+      shell: bash
+
     - name: 'Nix Setup'
       run: 'nix --extra-experimental-features "nix-command flakes" print-dev-env .#ci > nix.source'
       shell: bash
