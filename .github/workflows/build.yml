@@ -93,7 +93,7 @@ jobs:
           report-title: 'Go Tests (Windows)'
 
   release-public:
-    runs-on: 'digital-asset-dpm'
+    runs-on: digital-asset-dpm
     needs: 
       - windows
       - linux
@@ -113,7 +113,7 @@ jobs:
           gh_token: ${{ secrets.GITHUB_TOKEN }}
 
   release-public-unstable:
-    runs-on: 'digital-asset-dpm'
+    runs-on: digital-asset-dpm
     needs:
       - windows
       - linux
