@@ -22,12 +22,13 @@ func TestFileCloneURLRoundTrip(t *testing.T) {
 }
 
 func TestFileCloneURLKeepsWindowsDriveInPath(t *testing.T) {
-	cloneURL := FileCloneURL(filepath.Join("C:", "Users", "repo"))
+	// Join("C:", "Users") is the drive-relative path "C:Users" on Windows, not "C:\Users".
+	cloneURL := FileCloneURL(filepath.FromSlash("C:/Users/repo"))
 	assert.Equal(t, "file:///C:/Users/repo", cloneURL)
 
 	u, err := url.Parse(cloneURL)
 	require.NoError(t, err)
 	assert.Empty(t, u.Host)
 	assert.Equal(t, "/C:/Users/repo", u.Path)
-	assert.Equal(t, filepath.Join("C:", "Users", "repo"), DirFromFileCloneURL(cloneURL))
+	assert.Equal(t, filepath.FromSlash("C:/Users/repo"), DirFromFileCloneURL(cloneURL))
 }

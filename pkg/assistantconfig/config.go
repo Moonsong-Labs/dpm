@@ -436,36 +436,44 @@ func gitRepoSegments(cloneURL *url.URL) (host, org, repo string, err error) {
 	if len(parts) == 0 || parts[0] == "" {
 		return "", "", "", fmt.Errorf("missing git repository path")
 	}
-	for _, part := range parts {
-		if _, err := safeGitCacheSegment("repo path", part); err != nil {
+	safeParts := make([]string, len(parts))
+	for i, part := range parts {
+		safeParts[i], err = safeGitCacheSegment("repo path", part)
+		if err != nil {
 			return "", "", "", err
 		}
 	}
 
-	if len(parts) == 1 {
-		return host, parts[0], parts[0], nil
+	if len(safeParts) == 1 {
+		return host, safeParts[0], safeParts[0], nil
 	}
-	org = strings.Join(parts[:len(parts)-1], "/")
-	repo = parts[len(parts)-1]
+	org = strings.Join(safeParts[:len(safeParts)-1], "/")
+	repo = safeParts[len(safeParts)-1]
 	return host, org, repo, nil
 }
 
 // CachePathForGit returns ~/.dpm/cache/git/<host>/<org>/<repo>/<ref-hash>/path/to/foo.dar
 func (c *Config) CachePathForGit(host, org, repo, refHash, darPath string) (string, error) {
-	for name, value := range map[string]string{
-		"host": host,
-		"repo": repo,
-		"ref":  refHash,
-	} {
-		if _, err := safeGitCacheSegment(name, value); err != nil {
+	host, err := safeGitCacheSegment("host", host)
+	if err != nil {
+		return "", err
+	}
+	repo, err = safeGitCacheSegment("repo", repo)
+	if err != nil {
+		return "", err
+	}
+	refHash, err = safeGitCacheSegment("ref", refHash)
+	if err != nil {
+		return "", err
+	}
+	orgParts := strings.Split(org, "/")
+	for i, part := range orgParts {
+		orgParts[i], err = safeGitCacheSegment("org", part)
+		if err != nil {
 			return "", err
 		}
 	}
-	for part := range strings.SplitSeq(org, "/") {
-		if _, err := safeGitCacheSegment("org", part); err != nil {
-			return "", err
-		}
-	}
+	org = strings.Join(orgParts, "/")
 
 	cleanDarPath := filepath.ToSlash(filepath.Clean(darPath))
 	if cleanDarPath == "." || cleanDarPath == ".." || strings.HasPrefix(cleanDarPath, "../") || filepath.IsAbs(darPath) {

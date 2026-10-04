@@ -60,7 +60,19 @@ func TestCachePathForGitDependency_rewritesHostPort(t *testing.T) {
 	got, err := config.GitWorkPathForRepo(cloneURL)
 	require.NoError(t, err)
 	assert.Equal(t, filepath.Join(config.CachePath, "git", "127.0.0.1_62255", "org", "repo", ".work"), got)
-	assert.NotContains(t, got, ":")
+	assert.NotContains(t, got, "127.0.0.1:62255")
+}
+
+func TestCachePathForGitDependency_fileURLDriveIsADirectoryName(t *testing.T) {
+	t.Parallel()
+
+	config := &Config{CachePath: filepath.Join("cache-root")}
+	cloneURL, err := url.Parse("file:///C:/Users/repo")
+	require.NoError(t, err)
+
+	got, err := config.GitWorkPathForRepo(cloneURL)
+	require.NoError(t, err)
+	assert.Equal(t, filepath.Join("cache-root", "git", "local", "C_", "Users", "repo", ".work"), got)
 }
 
 func TestCachePathForGitDependency_cleansDarPath(t *testing.T) {
