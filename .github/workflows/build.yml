@@ -32,8 +32,6 @@ jobs:
         'ubuntu-latest' ||
         'digital-asset-dpm'
       }}
-    
-
     permissions:
       contents: read
       checks: write
@@ -93,10 +91,13 @@ jobs:
           report-title: 'Go Tests (Windows)'
 
   release-public:
-    runs-on: 'digital-asset-dpm'
-    needs: 
+    runs-on: digital-asset-dpm
+    needs:
       - windows
       - linux
+    permissions:
+      contents: write
+      packages: write
     if: >
       github.repository == 'digital-asset/dpm' &&
       github.event_name == 'push' &&
@@ -113,10 +114,13 @@ jobs:
           gh_token: ${{ secrets.GITHUB_TOKEN }}
 
   release-public-unstable:
-    runs-on: 'digital-asset-dpm'
+    runs-on: digital-asset-dpm
     needs:
       - windows
       - linux
+    permissions:
+      contents: read
+      packages: write
     # Restrict unstable releases to push events only (never run on PRs)
     if: >
       github.repository == 'digital-asset/dpm' &&
