@@ -50,6 +50,19 @@ func TestCachePathForGitDependency_happyPath(t *testing.T) {
 	assert.Equal(t, filepath.Join(config.CachePath, "git", "github.com", "org", "repo", ref, "packages", "foo.dar"), got)
 }
 
+func TestCachePathForGitDependency_rewritesHostPort(t *testing.T) {
+	t.Parallel()
+
+	config := &Config{CachePath: t.TempDir()}
+	cloneURL, err := url.Parse("http://127.0.0.1:62255/org/repo")
+	require.NoError(t, err)
+
+	got, err := config.GitWorkPathForRepo(cloneURL)
+	require.NoError(t, err)
+	assert.Equal(t, filepath.Join(config.CachePath, "git", "127.0.0.1_62255", "org", "repo", ".work"), got)
+	assert.NotContains(t, got, ":")
+}
+
 func TestCachePathForGitDependency_cleansDarPath(t *testing.T) {
 	t.Parallel()
 

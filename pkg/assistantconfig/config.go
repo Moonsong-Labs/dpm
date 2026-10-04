@@ -411,7 +411,9 @@ func safeGitCacheSegment(name, value string) (string, error) {
 	if filepath.IsAbs(value) || strings.ContainsAny(value, `/\`) {
 		return "", fmt.Errorf("invalid git cache %s segment %q", name, value)
 	}
-	return value, nil
+	// Hosts such as 127.0.0.1:62255 and Windows drive segments such as "C:"
+	// are not legal directory names. Rewrite them the same way OCI cache paths do.
+	return utils.SafePathSegment(value), nil
 }
 
 func gitRepoSegments(cloneURL *url.URL) (host, org, repo string, err error) {

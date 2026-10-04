@@ -278,7 +278,7 @@ dependencies:
 		cachedPath := res.GetResolvedDependencies()[0]
 		assert.True(t, filepath.IsAbs(cachedPath))
 		assert.Contains(t, cachedPath, filepath.Join("cache", "git"))
-		assert.Contains(t, cachedPath, "packages/foo.dar")
+		assert.Contains(t, cachedPath, filepath.Join("packages", "foo.dar"))
 		assert.FileExists(t, cachedPath)
 
 		pkg, err := damlpackage.Read(filepath.Join(projectDir, "daml.yaml"))
@@ -301,7 +301,7 @@ func (suite *MainSuite) TestInstallGitDarWithCommitPinInYaml() {
 	config := testutil.MkConfig(t)
 	cloneURL := testutil.InitGitRepo(t, "packages/foo.dar", []byte("first dar version"))
 
-	repoPath := strings.TrimPrefix(cloneURL, "file://")
+	repoPath := testutil.DirFromFileCloneURL(cloneURL)
 	repo, err := git.PlainOpen(repoPath)
 	require.NoError(t, err)
 	head, err := repo.Head()
@@ -405,7 +405,7 @@ func (suite *MainSuite) TestResolutionOfGitDarDependenciesWithAlias() {
 
 	config := testutil.MkConfig(t)
 	cloneURL := testutil.InitGitRepo(t, "packages/foo.dar", []byte("foo dar contents"))
-	repoPath := strings.TrimPrefix(cloneURL, "file://")
+	repoPath := testutil.DirFromFileCloneURL(cloneURL)
 	barAbs := filepath.Join(repoPath, "packages", "bar.dar")
 	require.NoError(t, os.WriteFile(barAbs, []byte("bar dar contents"), 0o644))
 	repo, err := git.PlainOpen(repoPath)

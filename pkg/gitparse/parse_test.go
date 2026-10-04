@@ -22,6 +22,17 @@ func TestParseGitDependency(t *testing.T) {
 	assert.Equal(t, "git", dep.FullUrl.Scheme)
 }
 
+func TestParseGitDependency_fileURLKeepsWindowsDriveInPath(t *testing.T) {
+	t.Setenv("DPM_TEST_ALLOW_FILE_GIT", "true")
+
+	dep, err := ParseGitDependency("git:file:///C:/Users/repo#main?path=loyalty.dar")
+	require.NoError(t, err)
+	assert.Equal(t, "file", dep.Git.CloneURL.Scheme)
+	assert.Empty(t, dep.Git.CloneURL.Host)
+	assert.Equal(t, "/C:/Users/repo", dep.Git.CloneURL.Path)
+	assert.Equal(t, "file:///C:/Users/repo", dep.Git.CloneURL.String())
+}
+
 func TestParseGitDependency_pinnedRef(t *testing.T) {
 	t.Parallel()
 

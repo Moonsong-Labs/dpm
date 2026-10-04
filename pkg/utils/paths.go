@@ -96,6 +96,12 @@ func safeSegment(s string) string {
 	return out
 }
 
+// SafePathSegment returns s as a single directory name. Characters that Windows
+// rejects in a path segment, such as ":", are rewritten to "_".
+func SafePathSegment(s string) string {
+	return safeSegment(s)
+}
+
 // UrlToFilePath converts given url (without the scheme) to string usable as filepath.
 // It escapes unsafe chars like ":".
 // example:

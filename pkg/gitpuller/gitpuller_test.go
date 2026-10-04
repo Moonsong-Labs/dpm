@@ -122,7 +122,7 @@ func TestGitDarPuller_rejectsSymlinkOutsideRepo(t *testing.T) {
 		commit,
 	)))
 
-	cloneURL := "file://" + filepath.ToSlash(repoDir)
+	cloneURL := testutil.FileCloneURL(repoDir)
 	raw := "git:" + cloneURL + "#main?path=loyalty.dar"
 	dep := mustGitDep(t, raw)
 
@@ -178,7 +178,7 @@ func TestPullGitDar_rejectsEmptySourceBeforeCachingOrPinning(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, config.EnsureDirs())
 
-	sourceRepo, err := git.PlainOpen(strings.TrimPrefix(cloneURL, "file://"))
+	sourceRepo, err := git.PlainOpen(testutil.DirFromFileCloneURL(cloneURL))
 	require.NoError(t, err)
 	mainRef, err := sourceRepo.Reference(plumbing.NewBranchReferenceName("main"), true)
 	require.NoError(t, err)
