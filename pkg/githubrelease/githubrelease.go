@@ -1,8 +1,10 @@
 package githubrelease
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -190,7 +192,18 @@ func DownloadAsset(ctx context.Context, cloneURL *url.URL, tag, asset, destDir s
 		)
 	}
 
-	if err := utils.AtomicWriteFile(destPath, resp.Body); err != nil {
+	// Reject an empty body before publishing. A zero-byte cache file is not a
+	// hit, so writing it would make install succeed and resolve fail.
+	var first [1]byte
+	n, readErr := io.ReadFull(resp.Body, first[:])
+	if n == 0 {
+		if errors.Is(readErr, io.EOF) {
+			return "", fmt.Errorf("release asset %q for %s/%s is empty", asset, owner, repo)
+		}
+		return "", fmt.Errorf("failed to download %s/%s release asset %q: %w", owner, repo, asset, readErr)
+	}
+	body := io.MultiReader(bytes.NewReader(first[:n]), resp.Body)
+	if err := utils.AtomicWriteFile(destPath, body); err != nil {
 		return "", err
 	}
 	return destPath, nil

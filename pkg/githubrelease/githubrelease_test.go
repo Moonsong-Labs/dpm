@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"daml.com/x/assistant/pkg/testutil"
@@ -68,6 +69,32 @@ func TestNotFoundErrorsOmitResponseBody(t *testing.T) {
 	assert.Contains(t, err.Error(), `asset "missing.dar" not found in digital-asset/daml-finance release "no-such-release"`)
 	assert.NotContains(t, err.Error(), "<")
 	assert.NotContains(t, err.Error(), "DOCTYPE")
+}
+
+func TestDownloadAsset_rejectsEmptyBodyWithoutPublishing(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	host := srv.Listener.Addr().String()
+	t.Setenv("DPM_TEST_GITHUB_RELEASE_HOST", host)
+
+	cloneURL, err := url.Parse("http://" + host + "/digital-asset/daml-finance.git")
+	require.NoError(t, err)
+
+	dir := t.TempDir()
+	dest := filepath.Join(dir, "empty.dar")
+	sentinel := []byte("previous cache entry")
+	require.NoError(t, os.WriteFile(dest, sentinel, 0o644))
+
+	_, err = DownloadAsset(context.Background(), cloneURL, "v1.0.0", "empty.dar", dir)
+	require.Error(t, err)
+	assert.Equal(t, `release asset "empty.dar" for digital-asset/daml-finance is empty`, err.Error())
+
+	got, err := os.ReadFile(dest)
+	require.NoError(t, err)
+	assert.Equal(t, sentinel, got)
 }
 
 func TestParseGitHubRepo(t *testing.T) {
