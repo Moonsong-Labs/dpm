@@ -141,7 +141,10 @@ func (l *Locker) checkLockfile(expectedLockfile *PackageLock, lockfilePath strin
 }
 
 func (l *Locker) create(ctx context.Context, expected *PackageLock, lockfilePath string) (*PackageLock, error) {
-	existingPins := gitPinsFromExistingLock(lockfilePath)
+	reuse := gitPinReuseFor(lockfilePath, expected.Dars)
+	if err := ambiguousGitPinsError(expected.Dars, reuse); err != nil {
+		return nil, err
+	}
 
 	for _, d := range expected.Dars {
 		switch d.URI.Scheme {
@@ -149,7 +152,7 @@ func (l *Locker) create(ctx context.Context, expected *PackageLock, lockfilePath
 			d.Path = d.URI.Host
 			continue
 		case "git":
-			if err := l.resolveGitDar(ctx, d, existingPins); err != nil {
+			if err := l.resolveGitDar(ctx, d, reuse); err != nil {
 				return nil, err
 			}
 			continue
