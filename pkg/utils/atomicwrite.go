@@ -12,11 +12,11 @@ func AtomicWriteFile(dst string, r io.Reader) error {
 		return err
 	}
 
-	tmp := dst + ".tmp"
-	out, err := os.Create(tmp)
+	out, err := os.CreateTemp(filepath.Dir(dst), ".tmp-*")
 	if err != nil {
 		return err
 	}
+	tmp := out.Name()
 
 	_, copyErr := io.Copy(out, r)
 	syncErr := out.Sync()
