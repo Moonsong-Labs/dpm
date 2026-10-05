@@ -33,8 +33,8 @@ func TestExpandReleaseGitDependenciesRaw(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, expanded, 3)
 	assert.Equal(t, otherLine, mustRawValue(t, expanded[0]))
-	assert.Equal(t, gitparse.FormatGitReleaseLine("github.com/org/repo", tag, assetA), mustRawValue(t, expanded[1]))
-	assert.Equal(t, gitparse.FormatGitReleaseLine("github.com/org/repo", tag, assetB), mustRawValue(t, expanded[2]))
+	assert.Equal(t, gitparse.FormatGitReleaseLine("github.com/org/repo.git", tag, assetA), mustRawValue(t, expanded[1]))
+	assert.Equal(t, gitparse.FormatGitReleaseLine("github.com/org/repo.git", tag, assetB), mustRawValue(t, expanded[2]))
 }
 
 func TestExpandGitReleaseDependenciesInYaml(t *testing.T) {
@@ -64,7 +64,7 @@ dependencies:
 	require.Len(t, got.Dependencies, 2)
 	line, err := got.Dependencies[1].Value()
 	require.NoError(t, err)
-	assert.Equal(t, gitparse.FormatGitReleaseLine("github.com/org/repo", tag, asset), line)
+	assert.Equal(t, gitparse.FormatGitReleaseLine("github.com/org/repo.git", tag, asset), line)
 }
 
 func TestExpandGitReleaseDependenciesInYaml_alias(t *testing.T) {
@@ -100,7 +100,7 @@ dependencies:
 	require.Len(t, got.Dependencies, 1)
 	line, err := got.Dependencies[0].Value()
 	require.NoError(t, err)
-	assert.Equal(t, gitparse.FormatGitReleaseLine("github.com/org/repo", tag, asset), line)
+	assert.Equal(t, gitparse.FormatGitReleaseLine("github.com/org/repo.git", tag, asset), line)
 }
 
 func TestCanonicalizeGitDependenciesInYaml_afterExpandUsesFreshDeps(t *testing.T) {
@@ -150,7 +150,7 @@ dependencies:
 	require.NoError(t, err)
 	assert.NotContains(t, string(staleYaml), assetA)
 	assert.NotContains(t, string(staleYaml), assetB)
-	assert.Contains(t, string(staleYaml), "git:github.com/org/repo?release="+tag)
+	assert.Contains(t, string(staleYaml), "git:github.com/org/repo.git?release="+tag)
 }
 
 func TestExpandGitReleaseDependenciesInYaml_preservesMainPackageId(t *testing.T) {
@@ -183,7 +183,7 @@ data-dependencies:
 	assert.Equal(t, pkgID, got.DataDependencies[0].WithPackageId.MainPackageId)
 	line, err := got.DataDependencies[0].Value()
 	require.NoError(t, err)
-	assert.Equal(t, gitparse.FormatGitReleaseLine("github.com/org/repo", tag, asset), line)
+	assert.Equal(t, gitparse.FormatGitReleaseLine("github.com/org/repo.git", tag, asset), line)
 }
 
 func TestCanonicalizeRawGitDependencies_preservesMainPackageId(t *testing.T) {
@@ -201,7 +201,7 @@ func TestCanonicalizeRawGitDependencies_preservesMainPackageId(t *testing.T) {
 	require.Len(t, canonicalized, 1)
 	require.NotNil(t, canonicalized[0].WithPackageId)
 	assert.Equal(t, pkgID, canonicalized[0].WithPackageId.MainPackageId)
-	assert.Equal(t, "git:github.com/org/repo#main?path=foo.dar", canonicalized[0].WithPackageId.Value)
+	assert.Equal(t, "git:github.com/org/repo.git#main?path=foo.dar", canonicalized[0].WithPackageId.Value)
 }
 
 func TestExpandGitReleaseDependenciesInYaml_doesNotDuplicateExistingAssets(t *testing.T) {
@@ -300,7 +300,7 @@ data-dependencies:
 	require.NoError(t, err)
 	text := string(got)
 	assert.NotContains(t, text, `"@shared#`)
-	assert.Contains(t, text, "git:github.com/org/repo#"+commit+"?path=foo.dar")
+	assert.Contains(t, text, "git:github.com/org/repo.git#"+commit+"?path=foo.dar")
 	assert.Contains(t, text, "# keep this comment")
 }
 

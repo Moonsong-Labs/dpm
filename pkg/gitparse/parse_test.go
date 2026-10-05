@@ -138,7 +138,7 @@ func TestFormatGitYamlLine(t *testing.T) {
 	require.NoError(t, err)
 	pinned := dep.WithGitRef("deadbeefdeadbeefdeadbeefdeadbeefdeadbeef")
 	assert.Equal(t,
-		"git:github.com/org/repo#deadbeefdeadbeefdeadbeefdeadbeefdeadbeef?path=foo.dar",
+		"git:github.com/org/repo.git#deadbeefdeadbeefdeadbeefdeadbeefdeadbeef?path=foo.dar",
 		FormatGitYamlLine(pinned.Git),
 	)
 }
@@ -148,9 +148,99 @@ func TestFormatGitYamlLine_writesCanonicalPath(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "pkg/foo.dar", dep.Git.DarPath)
 	assert.Equal(t,
-		"git:github.com/org/repo#main?path=pkg/foo.dar",
+		"git:github.com/org/repo.git#main?path=pkg/foo.dar",
 		FormatGitYamlLine(dep.Git),
 	)
+}
+
+func TestFormatGitYamlLine_keepsSuffixOnlyWhenWritten(t *testing.T) {
+	t.Parallel()
+
+	withSuffix, err := ParseGitDependency("git:https://git.example.com/team/repo.git#main?path=foo.dar")
+	require.NoError(t, err)
+	assert.Equal(t, "git:git.example.com/team/repo.git#main?path=foo.dar", FormatGitYamlLine(withSuffix.Git))
+
+	withoutSuffix, err := ParseGitDependency("git:https://git.example.com/team/repo#main?path=foo.dar")
+	require.NoError(t, err)
+	assert.Equal(t, "git:git.example.com/team/repo#main?path=foo.dar", FormatGitYamlLine(withoutSuffix.Git))
+}
+
+func TestParseGitDependency_portAndIPv6RoundTrip(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name     string
+		raw      string
+		wantLine string
+		wantHost string
+		wantPath string
+	}{
+		{
+			name:     "port",
+			raw:      "git:https://git.example.com:8443/team/repo.git#main?path=foo.dar",
+			wantLine: "git:git.example.com:8443/team/repo.git#main?path=foo.dar",
+			wantHost: "git.example.com:8443",
+			wantPath: "/team/repo.git",
+		},
+		{
+			name:     "ipv6",
+			raw:      "git:https://[2001:db8::1]:8443/team/repo.git#main?path=foo.dar",
+			wantLine: "git:[2001:db8::1]:8443/team/repo.git#main?path=foo.dar",
+			wantHost: "[2001:db8::1]:8443",
+			wantPath: "/team/repo.git",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dep, err := ParseGitDependency(tc.raw)
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantHost, dep.Git.CloneURL.Host)
+			assert.Equal(t, tc.wantPath, dep.Git.CloneURL.Path)
+			assert.Equal(t, "https://"+tc.wantHost+tc.wantPath, dep.Git.CloneURL.String())
+
+			line := FormatGitYamlLine(dep.Git)
+			assert.Equal(t, tc.wantLine, line)
+
+			again, err := ParseGitDependency(line)
+			require.NoError(t, err)
+			assert.Equal(t, dep.Git.CloneURL.String(), again.Git.CloneURL.String())
+			assert.Equal(t, dep.Git.Ref, again.Git.Ref)
+			assert.Equal(t, dep.Git.DarPath, again.Git.DarPath)
+		})
+	}
+}
+
+func TestFormatGitReleaseLine_portAndIPv6KeepReleaseQuery(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		cloneURL string
+		want     string
+	}{
+		{
+			cloneURL: "git.example.com:8443/team/repo.git",
+			want:     "git:git.example.com:8443/team/repo.git?asset=foo.dar&release=v1.0.0",
+		},
+		{
+			cloneURL: "[2001:db8::1]:8443/team/repo.git",
+			want:     "git:[2001:db8::1]:8443/team/repo.git?asset=foo.dar&release=v1.0.0",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.cloneURL, func(t *testing.T) {
+			line := FormatGitReleaseLine(tc.cloneURL, "v1.0.0", "foo.dar")
+			assert.Equal(t, tc.want, line)
+
+			dep, err := ParseGitDependency(line)
+			require.NoError(t, err)
+			assert.True(t, dep.Git.Release)
+			assert.Equal(t, "v1.0.0", dep.Git.Ref)
+			assert.Equal(t, "foo.dar", dep.Git.DarPath)
+			assert.True(t, strings.HasSuffix(dep.Git.CloneURL.Path, "/team/repo.git"))
+		})
+	}
 }
 
 func TestFormatGitYamlLineIsFixedPointOfCoerce(t *testing.T) {
@@ -162,6 +252,8 @@ func TestFormatGitYamlLineIsFixedPointOfCoerce(t *testing.T) {
 		"git:https://github.com/org/repo.git#main?path=foo.dar",
 		"git:gitlab.com/group/subgroup/repo.git#v1.2.3?path=out/foo.dar",
 		"git:git.example.com/team/repo#main?path=foo.dar",
+		"git:https://git.example.com:8443/team/repo.git#main?path=foo.dar",
+		"git:https://[2001:db8::1]:8443/team/repo.git#main?path=foo.dar",
 		"git:github.com/org/repo.git?release=v1.0.0",
 		"git:github.com/org/repo?release=v1.0.0&asset=foo.dar",
 		"git:github.com/org/repo#main?path=foo%2Bbar.dar",

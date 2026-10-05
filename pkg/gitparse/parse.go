@@ -26,7 +26,7 @@ func ParseGitDependency(raw string) (*Dependency, error) {
 	if hashIdx := strings.Index(remainder, "#"); hashIdx >= 0 {
 		basePart = remainder[:hashIdx]
 	}
-	u, err := url.Parse(basePart)
+	u, err := parseGitCloneBase(basePart)
 	if err == nil && u.Query().Get("release") != "" {
 		return parseGitReleaseDependency(remainder, raw)
 	}
@@ -34,7 +34,7 @@ func ParseGitDependency(raw string) (*Dependency, error) {
 }
 
 func parseGitReleaseDependency(remainder, raw string) (*Dependency, error) {
-	u, err := url.Parse(remainder)
+	u, err := parseGitCloneBase(remainder)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't parse git release dependency url %q: %w", raw, err)
 	}
@@ -102,7 +102,7 @@ func parseGitRepoDependency(remainder, raw string) (*Dependency, error) {
 		return nil, fmt.Errorf("git dependency %q: %w", raw, err)
 	}
 
-	u, err := url.Parse(basePart)
+	u, err := parseGitCloneBase(basePart)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't parse git dependency url %q: %w", raw, err)
 	}
@@ -130,6 +130,16 @@ func parseGitRepoDependency(remainder, raw string) (*Dependency, error) {
 			CloneURL: cloneURL,
 		},
 	}, nil
+}
+
+// parseGitCloneBase parses a git clone URL.
+// When raw contains "://", it is parsed as written. Otherwise https:// is
+// prepended.
+func parseGitCloneBase(raw string) (*url.URL, error) {
+	if !strings.Contains(raw, "://") {
+		raw = "https://" + raw
+	}
+	return url.Parse(raw)
 }
 
 func cloneURLFromHTTPS(u *url.URL, raw string) (*url.URL, string, string, error) {

@@ -21,7 +21,7 @@ func gitDependencyModesFromInline(remainder string) (gitDependencyModes, error) 
 
 	basePart, fragment, _ := strings.Cut(remainder, "#")
 
-	if u, err := url.Parse(basePart); err == nil {
+	if u, err := parseGitCloneBase(basePart); err == nil {
 		modes.release = strings.TrimSpace(u.Query().Get("release"))
 		modes.asset = strings.TrimSpace(u.Query().Get("asset"))
 	}

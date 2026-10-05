@@ -76,7 +76,7 @@ func hasGitDependencySyntax(raw string) bool {
 		}
 		base = raw[:hashIdx]
 	}
-	if u, err := url.Parse(base); err == nil && u.Query().Get("release") != "" {
+	if u, err := parseGitCloneBase(base); err == nil && u.Query().Get("release") != "" {
 		return true
 	}
 	_, ok, _ := tryParseWebBlobURL(raw)
@@ -103,7 +103,7 @@ type webBlobRef struct {
 }
 
 func tryParseWebBlobURL(raw string) (*webBlobRef, bool, error) {
-	u, err := url.Parse(raw)
+	u, err := parseGitCloneBase(raw)
 	if err != nil {
 		return nil, false, err
 	}

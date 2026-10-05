@@ -119,7 +119,7 @@ func TestCoerceGitDependencyInput_nonGitHubHosts(t *testing.T) {
 			name: "gitlab https clone url is shortened to host-first",
 			raw:  "git:https://gitlab.com/org/repo.git#main?path=foo.dar",
 			opts: GitInputOptions{RequireGitPrefix: true},
-			want: "git:gitlab.com/org/repo#main?path=foo.dar",
+			want: "git:gitlab.com/org/repo.git#main?path=foo.dar",
 		},
 		{
 			name: "gitlab blob url with /-/ separator",

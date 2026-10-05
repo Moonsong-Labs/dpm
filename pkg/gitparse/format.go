@@ -17,7 +17,7 @@ func gitDependencyCloneURLString(u *url.URL) string {
 		return ""
 	}
 	if u.Scheme == "https" {
-		return u.Host + strings.TrimSuffix(u.EscapedPath(), ".git")
+		return u.Host + u.EscapedPath()
 	}
 	return u.String()
 }
@@ -36,7 +36,8 @@ func FormatGitYamlLine(git GitSource) string {
 
 // FormatGitReleaseLine builds git:...?release=TAG&asset=NAME (asset may be empty).
 func FormatGitReleaseLine(cloneURL, releaseTag, asset string) string {
-	u, err := url.Parse(cloneURL)
+	schemeless := !strings.Contains(cloneURL, "://")
+	u, err := parseGitCloneBase(cloneURL)
 	if err != nil {
 		return "git:" + cloneURL
 	}
@@ -48,7 +49,11 @@ func FormatGitReleaseLine(cloneURL, releaseTag, asset string) string {
 		q.Del("asset")
 	}
 	u.RawQuery = q.Encode()
-	return "git:" + u.String()
+	formatted := u.String()
+	if schemeless {
+		formatted = strings.TrimPrefix(formatted, u.Scheme+"://")
+	}
+	return "git:" + formatted
 }
 
 // FormatGitReleaseBaseLine returns the git release dependency line without an asset.
