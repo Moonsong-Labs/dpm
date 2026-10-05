@@ -19,6 +19,8 @@ require (
 	oras.land/oras-go/v2 v2.6.2
 )
 
+require github.com/gofrs/flock v0.13.1
+
 require (
 	dario.cat/mergo v1.0.2 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
