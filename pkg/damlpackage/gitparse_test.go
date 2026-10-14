@@ -82,7 +82,7 @@ data-dependencies:
 	assert.Equal(t, "foo.dar", release.GitStructured.Asset)
 }
 
-func TestParseGitStructuredDependency_requiresSDK36(t *testing.T) {
+func TestStructuredGitSDKError(t *testing.T) {
 	t.Parallel()
 
 	body := `
@@ -92,34 +92,59 @@ dependencies:
       ref: main
       path: pkg/foo.dar
 `
+	// The sdk-version in the file is not the version the check uses. Reading
+	// succeeds for every file version, including one inherited from elsewhere.
+	for _, fileVersion := range []string{"", "3.5.2", "3.6.0"} {
+		header := ""
+		if fileVersion != "" {
+			header = "sdk-version: " + fileVersion + "\n"
+		}
+		_, err := ReadFromContents([]byte(header+body), "/proj/daml.yaml")
+		require.NoError(t, err)
+	}
+
+	pkg, err := ReadFromContents([]byte(body), "/proj/daml.yaml")
+	require.NoError(t, err)
+
 	cases := []struct {
 		name    string
 		version string
 		ok      bool
+		errText string
 	}{
-		{name: "unset", version: "", ok: false},
-		{name: "3.5", version: "3.5.2", ok: false},
+		{name: "unset", version: "", errText: "sdk-version is not set"},
+		{name: "3.5", version: "3.5.2", errText: "sdk-version is 3.5.2"},
+		{name: "2.10", version: "2.10.0", errText: "sdk-version is 2.10.0"},
+		{name: "invalid", version: "abc", errText: "invalid sdk version"},
 		{name: "3.6 snapshot", version: "3.6.0-snapshot.20250901", ok: true},
 		{name: "3.6", version: "3.6.0", ok: true},
 		{name: "3.7", version: "3.7.1", ok: true},
+		{name: "3.10", version: "3.10.0", ok: true},
+		{name: "4.0", version: "4.0.0", ok: true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			header := ""
-			if tc.version != "" {
-				header = "sdk-version: " + tc.version + "\n"
-			}
-			_, err := ReadFromContents([]byte(header+body), "")
+			err := pkg.StructuredGitSDKError(tc.version)
 			if tc.ok {
 				require.NoError(t, err)
 				return
 			}
 			require.Error(t, err)
-			assert.Contains(t, err.Error(), "SDK 3.6 and later")
-			assert.Contains(t, err.Error(), "not on earlier SDKs")
-			assert.Contains(t, err.Error(), "git: one-liner")
+			assert.Contains(t, err.Error(), tc.errText)
+			assert.Contains(t, err.Error(), "/proj/daml.yaml")
+			if tc.version != "abc" {
+				assert.Contains(t, err.Error(), "SDK 3.6 and later")
+				assert.Contains(t, err.Error(), "git: one-liner")
+			}
 		})
 	}
+
+	t.Run("one-liner is unchecked", func(t *testing.T) {
+		oneLiner, err := ReadFromContents([]byte("sdk-version: 3.5.2\ndependencies:\n  - git:github.com/org/repo#main?path=pkg/foo.dar\n"), "/proj/daml.yaml")
+		require.NoError(t, err)
+		require.NoError(t, oneLiner.StructuredGitSDKError(""))
+		require.NoError(t, oneLiner.StructuredGitSDKError("3.5.2"))
+	})
 }
 
 func TestParseGitStructuredDependency_conflictingFields(t *testing.T) {
