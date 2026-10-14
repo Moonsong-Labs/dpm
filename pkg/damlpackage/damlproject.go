@@ -148,8 +148,9 @@ func ReadFromContents(contents []byte, absoluteFilePath string) (*DamlPackage, e
 
 // StructuredGitSDKError reports that this package uses a structured git dependency
 // which the SDK about to run damlc cannot read.
-// sdkVersion is that effective version: the package sdk-version, otherwise the
-// multi-package.yaml version, otherwise DPM_SDK_VERSION. An empty version is
+// sdkVersion is that effective version, in the same order dpm selects an SDK:
+// DPM_SDK_VERSION if set, otherwise the package sdk-version, otherwise the
+// multi-package.yaml version. An empty version is
 // unsupported when a structured entry is present. Packages with no structured
 // entry always pass.
 func (p *DamlPackage) StructuredGitSDKError(sdkVersion string) error {
