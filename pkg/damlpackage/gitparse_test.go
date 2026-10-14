@@ -69,7 +69,7 @@ data-dependencies:
 	require.NotNil(t, dep.GitStructured)
 	assert.Equal(t, "main", dep.GitStructured.Ref)
 	assert.Equal(t, "pkg/foo.dar", dep.GitStructured.Path)
-	parsed, ok := p.ParsedDarDependencies.Dependencies["git:https://github.com/org/repo.git#main?path=pkg/foo.dar"]
+	parsed, ok := p.ParsedDarDependencies.Dependencies["git:github.com/org/repo.git#main?path=pkg/foo.dar"]
 	require.True(t, ok)
 	assert.Equal(t, "main", parsed.Git.Ref)
 	assert.Equal(t, "pkg/foo.dar", parsed.Git.DarPath)
@@ -80,6 +80,75 @@ data-dependencies:
 	require.NotNil(t, release.GitStructured)
 	assert.Equal(t, "v1.0.0", release.GitStructured.Release)
 	assert.Equal(t, "foo.dar", release.GitStructured.Asset)
+	parsedRelease, ok := p.ParsedDarDependencies.DataDependencies["git:github.com/org/repo.git?asset=foo.dar&release=v1.0.0"]
+	require.True(t, ok)
+	assert.True(t, parsedRelease.Git.Release)
+	assert.Equal(t, "v1.0.0", parsedRelease.Git.Ref)
+	assert.Equal(t, "foo.dar", parsedRelease.Git.DarPath)
+}
+
+func TestParseGitStructuredDependency_rejectsFieldDelimiters(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		yaml string
+		err  string
+	}{
+		{
+			name: "ref contains path query",
+			yaml: `sdk-version: 3.6.0
+dependencies:
+  - git:
+      url: github.com/org/repo
+      ref: "main?path=other.dar"
+      path: foo.dar
+`,
+			err: `ref "main?path=other.dar" contains "?"`,
+		},
+		{
+			name: "url contains fragment",
+			yaml: `sdk-version: 3.6.0
+dependencies:
+  - git:
+      url: "github.com/org/repo#evil"
+      ref: main
+      path: foo.dar
+`,
+			err: "url must not contain '#' or '?'",
+		},
+		{
+			name: "url contains query",
+			yaml: `sdk-version: 3.6.0
+dependencies:
+  - git:
+      url: "github.com/org/repo?x=y"
+      ref: main
+      path: foo.dar
+`,
+			err: "url must not contain '#' or '?'",
+		},
+		{
+			name: "url contains credentials",
+			yaml: `sdk-version: 3.6.0
+dependencies:
+  - git:
+      url: "https://user:s3cret@github.com/org/repo"
+      ref: main
+      path: foo.dar
+`,
+			err: "url must not contain credentials",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := ReadFromContents([]byte(tc.yaml), "")
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.err)
+			assert.NotContains(t, err.Error(), "other.dar?path=foo.dar")
+		})
+	}
 }
 
 func TestStructuredGitSDKError(t *testing.T) {

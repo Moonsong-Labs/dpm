@@ -242,18 +242,16 @@ func CanonicalizeRawGitDependencies(rawDeps []*RawDependency) ([]*RawDependency,
 func canonicalizeRawGitDependency(raw *RawDependency) (*RawDependency, bool, error) {
 	switch {
 	case raw.GitStructured != nil:
-		line, err := gitparse.FormatGitStructuredLine(raw.GitStructured)
+		dep, err := gitparse.ParseGitStructured(raw.GitStructured)
 		if err != nil {
 			return nil, false, err
 		}
-		canonical, err := gitparse.CoerceGitDependencyInput(line, gitparse.GitInputOptions{RequireGitPrefix: true})
-		if err != nil {
-			return nil, false, err
+		if dep.Git.Release {
+			if err := githubrelease.ValidateReleaseHost(dep.Git.CloneURL); err != nil {
+				return nil, false, err
+			}
 		}
-		fields, err := gitparse.StructuredFieldsFromLine(canonical)
-		if err != nil {
-			return nil, false, err
-		}
+		fields := gitparse.StructuredFieldsFromGit(dep.Git)
 		if *raw.GitStructured == *fields {
 			return raw, false, nil
 		}

@@ -129,6 +129,27 @@ func validateGitStructuredFields(fields *GitStructuredFields) error {
 	return validateGitDependencyModes(gitDependencyModesFromStructured(fields))
 }
 
+// validateGitRefName applies git check-ref-format to a branch, tag, or release name.
+// '#' is also rejected: a one-liner treats it as the start of the ref.
+func validateGitRefName(ref string) error {
+	for _, r := range ref {
+		if r < 0x20 || r == 0x7f || strings.ContainsRune(" ~^:?*[\\#", r) {
+			return fmt.Errorf("%q contains %q", ref, string(r))
+		}
+	}
+	if ref == "@" ||
+		strings.HasPrefix(ref, "/") || strings.HasSuffix(ref, "/") || strings.Contains(ref, "//") ||
+		strings.Contains(ref, "..") || strings.HasSuffix(ref, ".") || strings.Contains(ref, "@{") {
+		return fmt.Errorf("%q is not a valid git ref", ref)
+	}
+	for _, part := range strings.Split(ref, "/") {
+		if strings.HasPrefix(part, ".") || strings.HasSuffix(part, ".lock") {
+			return fmt.Errorf("%q is not a valid git ref", ref)
+		}
+	}
+	return nil
+}
+
 func validateGitInlineDependency(remainder string) error {
 	modes, err := gitDependencyModesFromInline(remainder)
 	if err != nil {

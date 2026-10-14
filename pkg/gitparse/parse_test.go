@@ -329,6 +329,25 @@ func TestGitDarPathSurvivesCanonicalization(t *testing.T) {
 		})
 	}
 
+	t.Run("structured fields are parsed without joining", func(t *testing.T) {
+		dep, err := ParseGitStructured(&GitStructuredFields{
+			URL:  "github.com/org/repo",
+			Ref:  "main",
+			Path: "a#b&c=d.dar",
+		})
+		require.NoError(t, err)
+		assert.Equal(t, "main", dep.Git.Ref)
+		assert.Equal(t, "a#b&c=d.dar", dep.Git.DarPath)
+
+		_, err = ParseGitStructured(&GitStructuredFields{
+			URL:  "github.com/org/repo",
+			Ref:  "main?path=other.dar",
+			Path: "foo.dar",
+		})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), `ref "main?path=other.dar" contains "?"`)
+	})
+
 	t.Run("structured path scalar is escaped", func(t *testing.T) {
 		line, err := FormatGitStructuredLine(&GitStructuredFields{
 			URL:  "github.com/org/repo",
