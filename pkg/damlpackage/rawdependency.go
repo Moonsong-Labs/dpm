@@ -13,11 +13,16 @@ var RawDependenciesSchemaErr = fmt.Errorf("dar dependencies fields must be of ty
 // RawDependency is the 'string | {...}' sum-type for
 // dependencies / data-dependencies YAML fields.
 // A structured git object stays a mapping in daml.yaml; pinning updates its ref.
-// That mapping is only valid when sdk-version is 3.6 or later.
+// main-package-id may sit beside git. Any other sibling key is rejected, as is
+// any key inside the git mapping other than url, ref, path, release, and asset.
+// That mapping is only valid when the SDK that runs damlc is 3.6 or later.
 type RawDependency struct {
 	ValueOnly     *string
 	WithPackageId *withPackageId
 	GitStructured *gitparse.GitStructuredFields
+	// GitMainPackageId is the main-package-id sibling of a structured git entry.
+	// It is set only when that key is present.
+	GitMainPackageId *string
 }
 
 type withPackageId struct {
@@ -25,8 +30,11 @@ type withPackageId struct {
 	MainPackageId string `yaml:"main-package-id"`
 }
 
+// gitStructuredEntry is a structured git dependency.
+// main-package-id is the only key allowed beside git.
 type gitStructuredEntry struct {
-	Git *gitparse.GitStructuredFields `yaml:"git"`
+	Git           *gitparse.GitStructuredFields `yaml:"git"`
+	MainPackageId *string                       `yaml:"main-package-id,omitempty"`
 }
 
 func (r *RawDependency) Value() (string, error) {
@@ -43,10 +51,13 @@ func (r *RawDependency) Value() (string, error) {
 }
 
 func (r *RawDependency) GetMainPackageId() *string {
-	if r.WithPackageId == nil {
+	if r == nil {
 		return nil
 	}
-	return &r.WithPackageId.MainPackageId
+	if r.WithPackageId != nil {
+		return &r.WithPackageId.MainPackageId
+	}
+	return r.GitMainPackageId
 }
 
 func (r *RawDependency) UnmarshalYAML(b []byte) error {
@@ -60,13 +71,20 @@ func (r *RawDependency) UnmarshalYAML(b []byte) error {
 	if err := yaml.Unmarshal(b, &asMap); err == nil {
 		if _, ok := asMap["git"]; ok {
 			var gitEntry gitStructuredEntry
-			if err := yaml.Unmarshal(b, &gitEntry); err != nil {
+			// Strict applies to the git mapping and to its sibling keys, so a
+			// misspelt field such as assets, or a sibling other than
+			// main-package-id, is rejected instead of ignored.
+			if err := yaml.UnmarshalWithOptions(b, &gitEntry, yaml.Strict()); err != nil {
 				return fmt.Errorf("git dependency: %w", err)
 			}
 			if gitEntry.Git == nil {
 				gitEntry.Git = &gitparse.GitStructuredFields{}
 			}
 			r.GitStructured = gitEntry.Git
+			if gitEntry.MainPackageId != nil {
+				id := *gitEntry.MainPackageId
+				r.GitMainPackageId = &id
+			}
 			return nil
 		}
 	}
@@ -86,7 +104,7 @@ func (r *RawDependency) UnmarshalYAML(b []byte) error {
 func (r *RawDependency) MarshalYAML() (any, error) {
 	switch {
 	case r.GitStructured != nil:
-		return gitStructuredEntry{Git: r.GitStructured}, nil
+		return gitStructuredEntry{Git: r.GitStructured, MainPackageId: r.GitMainPackageId}, nil
 	case r.WithPackageId != nil:
 		return *r.WithPackageId, nil
 	case r.ValueOnly != nil:

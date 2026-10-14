@@ -24,6 +24,7 @@ Unreleased Changes since last tagged release (1.0.22)
         url: github.com/org/repo
         ref: main
         path: packages/baz.dar
+      main-package-id: <package-id>
 
   data-dependencies:
     - git:github.com/org/repo?release=v1.0.0&asset=foo.dar
@@ -38,4 +39,5 @@ Unreleased Changes since last tagged release (1.0.22)
   `dpm update --check` confirms the project is ready to build: repository files are pinned to a commit and cached, and release assets are downloaded. It does not change the project.
 
 ## Removal / Deprecated
+
 - None

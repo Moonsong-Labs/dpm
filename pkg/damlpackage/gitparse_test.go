@@ -280,6 +280,86 @@ dependencies:
 	}
 }
 
+func TestParseGitStructuredDependency_rejectsUnknownKeys(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		yaml string
+		err  string
+	}{
+		{
+			name: "unknown git field",
+			yaml: `sdk-version: 3.6.0
+dependencies:
+  - git:
+      url: github.com/org/repo
+      release: v1.0.0
+      assets: foo.dar
+`,
+			err: `unknown field "assets"`,
+		},
+		{
+			name: "main-package-id inside git",
+			yaml: `sdk-version: 3.6.0
+dependencies:
+  - git:
+      url: github.com/org/repo
+      ref: main
+      path: pkg/foo.dar
+      main-package-id: abc123
+`,
+			err: `unknown field "main-package-id"`,
+		},
+		{
+			name: "sibling value",
+			yaml: `sdk-version: 3.6.0
+dependencies:
+  - git:
+      url: github.com/org/repo
+      ref: main
+      path: pkg/foo.dar
+    value: ./local.dar
+`,
+			err: `unknown field "value"`,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			_, err := ReadFromContents([]byte(tc.yaml), "")
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.err)
+		})
+	}
+}
+
+func TestParseGitStructuredDependency_mainPackageId(t *testing.T) {
+	const pkgID = "abc123"
+	contents := []byte(`sdk-version: 3.6.0
+dependencies:
+  - git:
+      url: github.com/org/repo
+      ref: main
+      path: pkg/foo.dar
+    main-package-id: ` + pkgID + `
+`)
+	p, err := ReadFromContents(contents, "")
+	require.NoError(t, err)
+
+	require.Len(t, p.Dependencies, 1)
+	dep := p.Dependencies[0]
+	require.NotNil(t, dep.GitStructured)
+	require.NotNil(t, dep.GetMainPackageId())
+	assert.Equal(t, pkgID, *dep.GetMainPackageId())
+
+	parsed, ok := p.ParsedDarDependencies.Dependencies["git:github.com/org/repo#main?path=pkg/foo.dar"]
+	require.True(t, ok)
+	require.NotNil(t, parsed.MainPackageId)
+	assert.Equal(t, pkgID, *parsed.MainPackageId)
+}
+
 func TestGitDependencyHostsAgreeAcrossLayers(t *testing.T) {
 	t.Parallel()
 

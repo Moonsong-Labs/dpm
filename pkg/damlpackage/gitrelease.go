@@ -255,7 +255,7 @@ func canonicalizeRawGitDependency(raw *RawDependency) (*RawDependency, bool, err
 		if *raw.GitStructured == *fields {
 			return raw, false, nil
 		}
-		return &RawDependency{GitStructured: fields}, true, nil
+		return raw.withGitFields(fields), true, nil
 	case raw.WithPackageId != nil:
 		canonical, itemChanged, err := canonicalizeGitLineValue(raw.WithPackageId.Value)
 		if err != nil || !itemChanged {
@@ -287,6 +287,11 @@ func canonicalizeGitLineValue(line string) (string, bool, error) {
 	return canonical, canonical != line, nil
 }
 
+// withGitFields returns a structured git dependency with fields, keeping raw's main-package-id.
+func (r *RawDependency) withGitFields(fields *gitparse.GitStructuredFields) *RawDependency {
+	return &RawDependency{GitStructured: fields, GitMainPackageId: r.GitMainPackageId}
+}
+
 func rawDependencyFromValue(value string) *RawDependency {
 	v := value
 	return &RawDependency{ValueOnly: &v}
@@ -298,7 +303,7 @@ func rawDependencyWithValue(raw *RawDependency, value string) (*RawDependency, e
 		if err != nil {
 			return nil, err
 		}
-		return &RawDependency{GitStructured: fields}, nil
+		return raw.withGitFields(fields), nil
 	}
 	if raw != nil && raw.WithPackageId != nil {
 		return &RawDependency{WithPackageId: &withPackageId{
@@ -309,8 +314,8 @@ func rawDependencyWithValue(raw *RawDependency, value string) (*RawDependency, e
 	return rawDependencyFromValue(value), nil
 }
 
-// MarshalDependencyWithValue writes value, keeping structured git objects and
-// {value, main-package-id} wrappers.
+// MarshalDependencyWithValue writes value, keeping structured git objects
+// (including a main-package-id sibling) and {value, main-package-id} wrappers.
 func MarshalDependencyWithValue(raw *RawDependency, value string) (string, error) {
 	updated, err := rawDependencyWithValue(raw, value)
 	if err != nil {

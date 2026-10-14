@@ -400,6 +400,62 @@ func TestMarshalDependencyWithValue_pinsStructuredRef(t *testing.T) {
 	assert.Empty(t, got.GitStructured.Asset)
 }
 
+func TestCanonicalizeRawGitDependencies_preservesStructuredMainPackageId(t *testing.T) {
+	const pkgID = "abc123"
+	raw := []*RawDependency{{
+		GitStructured: &gitparse.GitStructuredFields{
+			URL:  "https://github.com/org/repo.git",
+			Ref:  "main",
+			Path: "foo.dar",
+		},
+		GitMainPackageId: ptr(pkgID),
+	}}
+
+	canonicalized, changed, err := CanonicalizeRawGitDependencies(raw)
+	require.NoError(t, err)
+	require.True(t, changed)
+	require.Len(t, canonicalized, 1)
+	require.NotNil(t, canonicalized[0].GitMainPackageId)
+	assert.Equal(t, pkgID, *canonicalized[0].GitMainPackageId)
+	assert.Equal(t, "github.com/org/repo.git", canonicalized[0].GitStructured.URL)
+
+	again, changedAgain, err := CanonicalizeRawGitDependencies(canonicalized)
+	require.NoError(t, err)
+	assert.False(t, changedAgain)
+	require.NotNil(t, again[0].GitMainPackageId)
+	assert.Equal(t, pkgID, *again[0].GitMainPackageId)
+}
+
+func TestMarshalDependencyWithValue_pinsStructuredRefAndKeepsMainPackageId(t *testing.T) {
+	const pinned = "0123456789012345678901234567890123456789"
+	const pkgID = "abc123"
+	raw := &RawDependency{
+		GitStructured: &gitparse.GitStructuredFields{
+			URL:  "github.com/org/repo.git",
+			Ref:  "main",
+			Path: "pkg/foo.dar",
+		},
+		GitMainPackageId: ptr(pkgID),
+	}
+	pinnedLine := gitparse.FormatGitYamlLine(gitparse.GitSource{
+		Ref:      pinned,
+		DarPath:  "pkg/foo.dar",
+		CloneURL: mustCloneURL(t, "https://github.com/org/repo.git"),
+	})
+
+	out, err := MarshalDependencyWithValue(raw, pinnedLine)
+	require.NoError(t, err)
+	assert.Contains(t, out, "main-package-id: "+pkgID)
+	assert.NotContains(t, out, "ref: main")
+
+	var got RawDependency
+	require.NoError(t, yamlUnmarshalDependency(t, out, &got))
+	require.NotNil(t, got.GitStructured)
+	assert.Equal(t, pinned, got.GitStructured.Ref)
+	require.NotNil(t, got.GetMainPackageId())
+	assert.Equal(t, pkgID, *got.GetMainPackageId())
+}
+
 func TestExpandGitReleaseDependenciesInYaml_keepsStructuredGit(t *testing.T) {
 	const tag = "v1.0.0"
 	const asset = "pkg-1.0.0.dar"
@@ -436,6 +492,44 @@ dependencies:
 	assert.NotContains(t, string(text), "git:github.com")
 }
 
+func TestExpandGitReleaseDependenciesInYaml_keepsStructuredMainPackageId(t *testing.T) {
+	const tag = "v1.0.0"
+	const asset = "pkg-1.0.0.dar"
+	const pkgID = "abc123"
+
+	testutil.GitHubReleaseServer(t, false, testutil.GitHubReleaseAsset{Name: asset})
+
+	yamlPath := t.TempDir() + "/daml.yaml"
+	contents := []byte(`sdk-version: 3.6.0
+dependencies:
+  - git:
+      url: https://github.com/org/repo.git
+      release: ` + tag + `
+    main-package-id: ` + pkgID + `
+`)
+	require.NoError(t, os.WriteFile(yamlPath, contents, 0o644))
+
+	pkg, err := Read(yamlPath)
+	require.NoError(t, err)
+	require.NotNil(t, pkg.Dependencies[0].GetMainPackageId())
+
+	expanded, err := ExpandGitReleaseDependenciesInYaml(context.Background(), yamlPath, "dependencies", pkg.Dependencies)
+	require.NoError(t, err)
+	require.True(t, expanded)
+
+	got, err := Read(yamlPath)
+	require.NoError(t, err)
+	require.Len(t, got.Dependencies, 1)
+	require.NotNil(t, got.Dependencies[0].GetMainPackageId())
+	assert.Equal(t, pkgID, *got.Dependencies[0].GetMainPackageId())
+	assert.Equal(t, asset, got.Dependencies[0].GitStructured.Asset)
+
+	text, err := os.ReadFile(yamlPath)
+	require.NoError(t, err)
+	assert.Contains(t, string(text), "main-package-id: "+pkgID)
+	assert.NotContains(t, string(text), "git:github.com")
+}
+
 func yamlUnmarshalDependency(t *testing.T, raw string, dest *RawDependency) error {
 	t.Helper()
 	return yaml.Unmarshal([]byte(raw), dest)
@@ -447,6 +541,8 @@ func mustCloneURL(t *testing.T, raw string) *url.URL {
 	require.NoError(t, err)
 	return u
 }
+
+func ptr(s string) *string { return &s }
 
 func mustRawValue(t *testing.T, raw *RawDependency) string {
 	t.Helper()
