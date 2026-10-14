@@ -11,11 +11,7 @@ import (
 var RawDependenciesSchemaErr = fmt.Errorf("dar dependencies fields must be of type string, structured git object, or '{ value: <string>, main-package-id: <string> }' object")
 
 // RawDependency is the 'string | {...}' sum-type for
-// dependencies / data-dependencies YAML fields.
-// A structured git object stays a mapping in daml.yaml; pinning updates its ref.
-// main-package-id may sit beside git. Any other sibling key is rejected, as is
-// any key inside the git mapping other than url, ref, path, release, and asset.
-// That mapping is only valid when the SDK that runs damlc is 3.6 or later.
+// dependencies / data-dependencies YAML fields
 type RawDependency struct {
 	ValueOnly     *string
 	WithPackageId *withPackageId
