@@ -16,6 +16,38 @@ type gitDependencyModes struct {
 	asset   string
 }
 
+func trimmedGitStructuredFields(fields *GitStructuredFields) (*GitStructuredFields, error) {
+	if fields == nil {
+		return nil, fmt.Errorf("missing git fields")
+	}
+	trimmed := &GitStructuredFields{
+		URL:     strings.TrimSpace(fields.URL),
+		Ref:     strings.TrimSpace(fields.Ref),
+		Path:    strings.TrimSpace(fields.Path),
+		Release: strings.TrimSpace(fields.Release),
+		Asset:   strings.TrimSpace(fields.Asset),
+	}
+	if err := validateGitStructuredFields(trimmed); err != nil {
+		return nil, err
+	}
+	if trimmed.URL == "" {
+		return nil, fmt.Errorf("git dependency: url is required")
+	}
+	return trimmed, nil
+}
+
+func gitDependencyModesFromStructured(fields *GitStructuredFields) gitDependencyModes {
+	if fields == nil {
+		return gitDependencyModes{}
+	}
+	return gitDependencyModes{
+		release: strings.TrimSpace(fields.Release),
+		ref:     strings.TrimSpace(fields.Ref),
+		path:    strings.TrimSpace(fields.Path),
+		asset:   strings.TrimSpace(fields.Asset),
+	}
+}
+
 func gitDependencyModesFromInline(remainder string) (gitDependencyModes, error) {
 	modes := gitDependencyModes{}
 
@@ -88,6 +120,13 @@ func validateGitRepoDarPath(path string) error {
 		return fmt.Errorf("repo-relative path %q must end with .dar", path)
 	}
 	return nil
+}
+
+func validateGitStructuredFields(fields *GitStructuredFields) error {
+	if fields == nil {
+		return fmt.Errorf("missing git fields")
+	}
+	return validateGitDependencyModes(gitDependencyModesFromStructured(fields))
 }
 
 func validateGitInlineDependency(remainder string) error {

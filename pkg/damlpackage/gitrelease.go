@@ -36,7 +36,7 @@ func ExpandGitReleaseDependenciesInYaml(ctx context.Context, yamlPath, fieldName
 }
 
 // CanonicalizeGitDependenciesInYaml rewrites git dependency entries in a daml.yaml field
-// to canonical git: one-liners.
+// to canonical form. Structured git objects stay mappings; one-liners stay one-liners.
 func CanonicalizeGitDependenciesInYaml(yamlPath, fieldName string, rawDeps []*RawDependency) (bool, error) {
 	if len(rawDeps) == 0 {
 		return false, nil
@@ -221,8 +221,8 @@ func rewriteYamlDependencyField(yamlPath, fieldName string, original, rewritten 
 	return true, nil
 }
 
-// CanonicalizeRawGitDependencies rewrites git entries to canonical one-liners.
-// {value, main-package-id} wrappers are kept.
+// CanonicalizeRawGitDependencies rewrites git entries to canonical form.
+// Structured git objects stay mappings. {value, main-package-id} wrappers are kept.
 func CanonicalizeRawGitDependencies(rawDeps []*RawDependency) ([]*RawDependency, bool, error) {
 	out := make([]*RawDependency, 0, len(rawDeps))
 	changed := false
@@ -241,6 +241,23 @@ func CanonicalizeRawGitDependencies(rawDeps []*RawDependency) ([]*RawDependency,
 
 func canonicalizeRawGitDependency(raw *RawDependency) (*RawDependency, bool, error) {
 	switch {
+	case raw.GitStructured != nil:
+		line, err := gitparse.FormatGitStructuredLine(raw.GitStructured)
+		if err != nil {
+			return nil, false, err
+		}
+		canonical, err := gitparse.CoerceGitDependencyInput(line, gitparse.GitInputOptions{RequireGitPrefix: true})
+		if err != nil {
+			return nil, false, err
+		}
+		fields, err := gitparse.StructuredFieldsFromLine(canonical)
+		if err != nil {
+			return nil, false, err
+		}
+		if *raw.GitStructured == *fields {
+			return raw, false, nil
+		}
+		return &RawDependency{GitStructured: fields}, true, nil
 	case raw.WithPackageId != nil:
 		canonical, itemChanged, err := canonicalizeGitLineValue(raw.WithPackageId.Value)
 		if err != nil || !itemChanged {
@@ -278,6 +295,13 @@ func rawDependencyFromValue(value string) *RawDependency {
 }
 
 func rawDependencyWithValue(raw *RawDependency, value string) (*RawDependency, error) {
+	if raw != nil && raw.GitStructured != nil {
+		fields, err := gitparse.StructuredFieldsFromLine(value)
+		if err != nil {
+			return nil, err
+		}
+		return &RawDependency{GitStructured: fields}, nil
+	}
 	if raw != nil && raw.WithPackageId != nil {
 		return &RawDependency{WithPackageId: &withPackageId{
 			Value:         value,
@@ -287,7 +311,8 @@ func rawDependencyWithValue(raw *RawDependency, value string) (*RawDependency, e
 	return rawDependencyFromValue(value), nil
 }
 
-// MarshalDependencyWithValue writes value, keeping {value, main-package-id} wrappers.
+// MarshalDependencyWithValue writes value, keeping structured git objects and
+// {value, main-package-id} wrappers.
 func MarshalDependencyWithValue(raw *RawDependency, value string) (string, error) {
 	updated, err := rawDependencyWithValue(raw, value)
 	if err != nil {
