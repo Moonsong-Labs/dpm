@@ -18,6 +18,7 @@ import (
 	"daml.com/x/assistant/pkg/assistantconfig"
 	"daml.com/x/assistant/pkg/component"
 	"daml.com/x/assistant/pkg/damlpackage"
+	"daml.com/x/assistant/pkg/multipackage"
 	"daml.com/x/assistant/pkg/ocipuller/remotepuller"
 	"daml.com/x/assistant/pkg/resolution"
 	"daml.com/x/assistant/pkg/resolver"
@@ -224,7 +225,9 @@ func (da *DamlAssistant) toCobraCommands(execContext context.Context, config *as
 
 // rejectStructuredGitBeforeSDK36 fails SDK commands whose damlc cannot read a
 // structured git dependency. The version is the one injected as DPM_SDK_VERSION,
-// which is the SDK the command will run. Built-in commands never call this.
+// which is the SDK the command will run. A project that lists components has no
+// SDK version, so the check is skipped and damlc reports a mapping it cannot read.
+// Built-in commands never call this.
 func rejectStructuredGitBeforeSDK36(damlYamlAbsPath string, isDamlPkg bool, sdkVersion string) error {
 	if !isDamlPkg {
 		return nil
@@ -233,7 +236,29 @@ func rejectStructuredGitBeforeSDK36(damlYamlAbsPath string, isDamlPkg bool, sdkV
 	if err != nil {
 		return err
 	}
+	if len(pkg.Components) > 0 {
+		return nil
+	}
+	usesComponents, err := multiPackageUsesComponents()
+	if err != nil {
+		return err
+	}
+	if usesComponents {
+		return nil
+	}
 	return pkg.StructuredGitSDKError(sdkVersion)
+}
+
+func multiPackageUsesComponents() (bool, error) {
+	path, ok, err := assistantconfig.GetMultiPackageAbsolutePath()
+	if err != nil || !ok {
+		return false, err
+	}
+	multi, err := multipackage.Read(path)
+	if err != nil {
+		return false, err
+	}
+	return len(multi.Components) > 0, nil
 }
 
 func (da *DamlAssistant) execSdkCommand(ctx context.Context, path string, args []string, extraEnv map[string]string) (int, error) {

@@ -26,11 +26,12 @@ func TestSDKCommandStructuredGitCheck(t *testing.T) {
 `
 
 	cases := []struct {
-		name       string
-		yaml       string
-		sdkVersion string
-		runs       bool
-		errText    string
+		name         string
+		yaml         string
+		sdkVersion   string
+		runs         bool
+		errText      string
+		multiPackage bool
 	}{
 		{
 			name:       "effective 3.6 runs even when the file has no sdk-version",
@@ -51,6 +52,21 @@ func TestSDKCommandStructuredGitCheck(t *testing.T) {
 			errText:    "sdk-version is not set",
 		},
 		{
+			name: "components skip the check",
+			yaml: `components:
+  - damlc:3.6.0
+` + structured,
+			sdkVersion: "",
+			runs:       true,
+		},
+		{
+			name:         "multi-package components skip the check",
+			yaml:         structured,
+			sdkVersion:   "",
+			runs:         true,
+			multiPackage: true,
+		},
+		{
 			name:       "one-liner runs on 3.5",
 			yaml:       "sdk-version: 3.5.2\n" + oneLiner,
 			sdkVersion: "3.5.2",
@@ -64,6 +80,11 @@ func TestSDKCommandStructuredGitCheck(t *testing.T) {
 			yamlPath := filepath.Join(dir, "daml.yaml")
 			require.NoError(t, os.WriteFile(yamlPath, []byte(tc.yaml), 0o644))
 			t.Setenv(assistantconfig.DamlPackageEnvVar, dir)
+			if tc.multiPackage {
+				multiDir := t.TempDir()
+				require.NoError(t, os.WriteFile(filepath.Join(multiDir, assistantconfig.DamlMultiPackageFilename), []byte("components:\n  - damlc:3.6.0\n"), 0o644))
+				t.Setenv(assistantconfig.DamlMultiPackageEnvVar, multiDir)
+			}
 
 			ran := false
 			da := &DamlAssistant{
